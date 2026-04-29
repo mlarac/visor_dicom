@@ -1,0 +1,65 @@
+<%- include('partials/header', { title: 'Gestión de Personal' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold text-gradient mb-0"><i class="bi bi-people-fill me-2"></i>Gestión de Personal</h2>
+    <p class="text-secondary mb-0">Control de usuarios y perfiles en el Visor DICOM</p>
+  </div>
+  <div>
+    <a href="/admin/users/create" class="btn btn-primary-corporate">
+      <i class="bi bi-person-plus-fill me-1"></i> Añadir Usuario
+    </a>
+  </div>
+</div>
+
+<div class="card card-elegant">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-elegant mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4">ID</th>
+            <th>Nombre de Usuario</th>
+            <th>Rol Asignado</th>
+            <th class="text-end pe-4">Acciones Administrativas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (users && users.length > 0) { %>
+            <% users.forEach(u => { %>
+              <tr>
+                <td class="ps-4 fw-medium text-secondary">#<%= u.id %></td>
+                <td><strong><%= u.username %></strong></td>
+                <td>
+                  <% if (u.role === 'Admin') { %>
+                    <span class="badge bg-danger">Administrador</span>
+                  <% } else { %>
+                    <span class="badge bg-info text-dark">Médico / Doctor</span>
+                  <% } %>
+                </td>
+                <td class="text-end pe-4">
+                  <a href="/admin/users/audit/<%= u.id %>" class="btn btn-sm btn-outline-primary rounded-pill me-2 px-3" title="Revisar bitácora de actividad">
+                    <i class="bi bi-journal-text me-1"></i> Trazabilidad
+                  </a>
+                  
+                  <!-- Formulario para asegurar el Delete por post en lugar de GET directo -->
+                  <form action="/admin/users/delete/<%= u.id %>" method="POST" class="d-inline" onsubmit="return confirm('¿Confirma que desea retirar el acceso al usuario <%= u.username %>?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" <%= (typeof session !== 'undefined' && session.user && session.user.id === u.id) ? 'disabled' : '' %>>
+                      <i class="bi bi-trash-fill"></i> Suspender
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="text-center py-5 text-secondary">No hay usuarios registrados en la base de datos.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

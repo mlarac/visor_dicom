@@ -1,0 +1,60 @@
+<%- include('partials/header', { title: 'Registrar Usuario' }) %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    
+    <div class="mb-4">
+      <a href="/admin/users" class="btn btn-sm btn-light border rounded-pill mb-3">
+        <i class="bi bi-arrow-left"></i> Volver a Gestión
+      </a>
+      <h2 class="fw-bold text-gradient mb-0">Alta de Personal</h2>
+      <p class="text-secondary">Conceder acceso al ecosistema DICOM</p>
+    </div>
+
+    <div class="card card-elegant p-4">
+      <div class="card-body">
+        
+        <% if (typeof error !== 'undefined') { %>
+          <div class="alert alert-danger boder-0">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= error %>
+          </div>
+        <% } %>
+
+        <form action="/admin/users/create" method="POST">
+          <div class="mb-4">
+            <label for="username" class="form-label fw-medium text-secondary small">Nombre de Usuario (Login)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge text-secondary"></i></span>
+              <input type="text" class="form-control bg-light border-start-0" id="username" name="username" placeholder="ej: dra.lopez" required>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="password" class="form-label fw-medium text-secondary small">Contraseña Segura</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-secondary"></i></span>
+              <input type="password" class="form-control bg-light border-start-0" id="password" name="password" minlength="4" placeholder="••••••••" required>
+            </div>
+            <div class="form-text">La contraseña se encriptará automáticamente mediante BCrypt.</div>
+          </div>
+
+          <div class="mb-5">
+            <label for="role" class="form-label fw-medium text-secondary small">Rol Administrativo</label>
+            <select class="form-select bg-light" id="role" name="role" required>
+              <option value="Doctor" selected>Médico / Especialista (Doctor)</option>
+              <option value="Admin">Administrador Global (Admin)</option>
+            </select>
+            <div class="form-text">Los perfiles médicos solo pueden interactuar con los estudios.</div>
+          </div>
+
+          <div class="d-grid mb-2">
+            <button type="submit" class="btn btn-primary-corporate btn-lg">Registrar Credencial</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
