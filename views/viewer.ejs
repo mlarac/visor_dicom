@@ -16,14 +16,36 @@
       background-color: rgba(30, 30, 30, 0.9);
       border-bottom: 1px solid #333;
     }
-    #dicomImage {
+    #mainContainer {
+      display: flex;
       width: 100vw;
       height: calc(100vh - 56px); /* Resta el top-bar */
+    }
+    .sidebar {
+      width: 250px;
+      background-color: #1a1a1a;
+      border-right: 1px solid #333;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    #dicomImage {
+      flex-grow: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       background-color: #111;
       position: relative;
+    }
+    .thumbnail-box {
+      width: 100%;
+      height: 150px;
+      background-color: #000;
+      border: 1px solid #444;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .thumbnail-box:hover {
+      border-color: #0d6efd;
     }
   </style>
 </head>
@@ -37,18 +59,31 @@
       <span class="fw-medium text-light"><i class="bi bi-file-medical"></i> Estudio DICOM #<%= studyId %></span>
     </div>
     <div>
-      <button class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Ajustar Brillo/Contraste (WW/WC)"><i class="bi bi-brightness-half"></i></button>
-      <button class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Zoom"><i class="bi bi-zoom-in"></i></button>
-      <button class="btn btn-sm btn-dark text-white border-secondary" data-bs-toggle="tooltip" title="Mover"><i class="bi bi-arrows-move"></i></button>
+      <button id="btnWwwc" class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Ajustar Brillo/Contraste (WW/WC)"><i class="bi bi-brightness-half"></i></button>
+      <button id="btnZoom" class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Zoom"><i class="bi bi-zoom-in"></i></button>
+      <button id="btnPan" class="btn btn-sm btn-dark text-white border-secondary" data-bs-toggle="tooltip" title="Mover"><i class="bi bi-arrows-move"></i></button>
     </div>
   </div>
 
-  <div id="dicomImage" oncontextmenu="return false" unselectable="on" onselectstart="return false;" onmousedown="return false;">
-    <!-- Aquí cornerstone inyectará el canvas -->
-    <div class="text-secondary text-center">
-      <div class="spinner-border text-light mb-2" role="status"></div>
-      <p>Cargando binario y parseando DICOM...</p>
-      <small class="text-muted">(Próximamente integración de Cornerstone.js)</small>
+  <div id="mainContainer">
+    <div class="sidebar">
+      <h6 class="text-light border-bottom border-secondary pb-2 mb-3">Metadatos</h6>
+      <div id="dicomMetadata" class="mb-4 text-secondary small">
+        <p>Cargando información...</p>
+      </div>
+      
+      <h6 class="text-light border-bottom border-secondary pb-2 mb-3">Series / Imágenes (<span id="imageCount">0</span>)</h6>
+      <div id="thumbnailContainer">
+        <!-- Thumbnail de la serie -->
+      </div>
+    </div>
+
+    <div id="dicomImage" oncontextmenu="return false" unselectable="on" onselectstart="return false;" onmousedown="return false;">
+      <!-- Aquí cornerstone inyectará el canvas -->
+      <div class="text-secondary text-center" id="loaderInfo">
+        <div class="spinner-border text-light mb-2" role="status"></div>
+        <p>Cargando imágenes de la serie...</p>
+      </div>
     </div>
   </div>
 
@@ -58,6 +93,8 @@
   <script src="/vendor/cornerstone-tools/dist/cornerstoneTools.js"></script>
   <script src="/vendor/dicom-parser/dist/dicomParser.js"></script>
   <script src="/vendor/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <!-- Hammer.js (Requerido por cornerstoneTools v3+) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 
   <script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -82,37 +119,140 @@
       };
       cornerstoneWADOImageLoader.webWorkerManager.initialize(config);
 
+      // 3. Configurar e Inicializar Cornerstone Tools
+      cornerstoneTools.external.cornerstone = cornerstone;
+      cornerstoneTools.external.Hammer = Hammer;
+      cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+      cornerstoneTools.init();
+
       const element = document.getElementById('dicomImage');
       cornerstone.enable(element);
 
       // Limpiar contenido de "cargando"
       
-      const imageId = 'wadouri:/dicom/descargar/<%= studyId %>';
+      fetch('/dicom/archivos/<%= studyId %>')
+        .then(response => response.json())
+        .then(data => {
+          if (!data.files || data.files.length === 0) {
+            throw new Error('No se encontraron imágenes en el directorio.');
+          }
 
-      cornerstone.loadImage(imageId).then((image) => {
-        // En caso de éxito al cargar binario real, ocultamos el texto de carga sin destruir el canvas
-        const loaderInfo = element.querySelector('.text-secondary');
-        if (loaderInfo) loaderInfo.style.display = 'none';
-        
-        cornerstone.displayImage(element, image);
-        
-        // Iniciativa para tools basicas
-        cornerstoneTools.init();
-        cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-        cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
-      }).catch(err => {
-        console.error('Error cargando DICOM:', err);
-        element.innerHTML = `
-          <div class="text-danger text-center bg-dark p-4 rounded border border-danger">
-            <i class="bi bi-exclamation-triangle fs-1"></i>
-            <h5 class="mt-3">Error al leer el archivo DICOM</h5>
-            <p class="text-secondary">Asegúrate de que el archivo descargado sea un binario válido (.dcm).</p>
-            <div class="alert alert-danger mt-3 text-start bg-black border-secondary">
-              <code>${err.message || err.toString()}</code>
+          document.getElementById('imageCount').textContent = data.files.length;
+
+          // Generar los imageIds
+          const imageIds = data.files.map(filename => 'wadouri:/dicom/descargar/<%= studyId %>/' + filename);
+
+          // Cargar la primera imagen para extraer metadatos y mostrarla
+          cornerstone.loadImage(imageIds[0]).then((image) => {
+            const loaderInfo = document.getElementById('loaderInfo');
+            if (loaderInfo) loaderInfo.style.display = 'none';
+
+            // Mostrar metadatos
+            const patientName = image.data.string('x00100010') || 'Desconocido';
+            const patientId = image.data.string('x00100020') || 'N/A';
+            const studyDate = image.data.string('x00080020') || 'Desconocida';
+            const modality = image.data.string('x00080060') || 'N/A';
+            
+            document.getElementById('dicomMetadata').innerHTML = `
+              <p class="mb-1"><strong>Paciente:</strong> <br> ${patientName}</p>
+              <p class="mb-1"><strong>ID Paciente:</strong> ${patientId}</p>
+              <p class="mb-1"><strong>Fecha Estudio:</strong> ${studyDate}</p>
+              <p class="mb-1"><strong>Modalidad:</strong> ${modality}</p>
+            `;
+
+            // Mostrar imagen en el visor principal
+            cornerstone.displayImage(element, image);
+
+            // Crear miniaturas (thumbnails) para cada imagen
+            imageIds.forEach((id, index) => {
+              const thumbWrapper = document.createElement('div');
+              thumbWrapper.style.position = 'relative';
+              
+              const thumbDiv = document.createElement('div');
+              thumbDiv.className = 'thumbnail-box';
+              thumbDiv.dataset.index = index;
+              
+              const label = document.createElement('span');
+              label.textContent = (index + 1).toString();
+              label.className = 'badge bg-dark position-absolute bottom-0 end-0 m-1';
+              
+              thumbWrapper.appendChild(thumbDiv);
+              thumbWrapper.appendChild(label);
+              document.getElementById('thumbnailContainer').appendChild(thumbWrapper);
+              
+              cornerstone.enable(thumbDiv);
+              cornerstone.loadImage(id).then(thumbImage => {
+                cornerstone.displayImage(thumbDiv, thumbImage);
+              });
+
+              // Al hacer clic, cambiar la imagen principal
+              thumbDiv.addEventListener('click', () => {
+                cornerstone.loadImage(id).then(newImage => {
+                  cornerstone.displayImage(element, newImage);
+                  stack.currentImageIdIndex = index;
+                });
+              });
+            });
+
+            // Configurar Stack
+            const stack = {
+              currentImageIdIndex: 0,
+              imageIds: imageIds
+            };
+            cornerstoneTools.addStackStateManager(element, ['stack']);
+            cornerstoneTools.addToolState(element, 'stack', stack);
+
+            // Añadir herramientas al visor
+            cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+            cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
+            cornerstoneTools.addTool(cornerstoneTools.PanTool);
+            cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+
+            // Activar por defecto Wwwc en clic izquierdo, y la rueda del ratón
+            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
+            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Click derecho como atajo
+            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });  // Click medio como atajo
+            cornerstoneTools.setToolActive('StackScrollMouseWheel', { });
+
+            // Lógica para cambiar la herramienta del clic izquierdo desde la UI
+            const setLeftClickTool = (toolName) => {
+              // Poner todas en pasivo para limpiar el click izquierdo
+              cornerstoneTools.setToolPassive('Wwwc');
+              cornerstoneTools.setToolPassive('Zoom');
+              cornerstoneTools.setToolPassive('Pan');
+              
+              // Reactivar atajos secundarios de forma segura
+              cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
+              cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });
+
+              // Asignar herramienta seleccionada al clic izquierdo
+              cornerstoneTools.setToolActive(toolName, { mouseButtonMask: 1 });
+            };
+
+            // Vincular los botones de la barra superior
+            document.getElementById('btnWwwc').addEventListener('click', () => setLeftClickTool('Wwwc'));
+            document.getElementById('btnZoom').addEventListener('click', () => setLeftClickTool('Zoom'));
+            document.getElementById('btnPan').addEventListener('click', () => setLeftClickTool('Pan'));
+
+          }).catch(err => {
+            throw err;
+          });
+
+        })
+        .catch(err => {
+          console.error('Error cargando lista de DICOM:', err);
+          const element = document.getElementById('dicomImage');
+          element.innerHTML = `
+            <div class="text-danger text-center bg-dark p-4 rounded border border-danger">
+              <i class="bi bi-exclamation-triangle fs-1"></i>
+              <h5 class="mt-3">Error al cargar la serie DICOM</h5>
+              <p class="text-secondary">Asegúrate de que el directorio exista y contenga archivos .dcm válidos.</p>
+              <div class="alert alert-danger mt-3 text-start bg-black border-secondary">
+                <code>${err.message || err.toString()}</code>
+              </div>
             </div>
-          </div>
-        `;
-      });
+          `;
+        });
 
     });
   </script>

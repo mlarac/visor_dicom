@@ -5,9 +5,45 @@ import fs from 'fs';
 /**
  * Servicio para servir archivos DICOM verificando la ruta física
  */
-const downloadDicom = async (req, res) => {
+const listDicomFiles = async (req, res) => {
   try {
     const { studyId } = req.params;
+    const study = await Study.findByPk(studyId);
+
+    if (!study) {
+      return res.status(404).json({ error: 'Estudio no encontrado.' });
+    }
+
+    const dirPath = path.resolve(study.directoryPath);
+
+    if (!fs.existsSync(dirPath)) {
+      return res.status(404).json({ error: 'El directorio físico no está disponible.' });
+    }
+
+    fs.readdir(dirPath, (err, files) => {
+      if (err) {
+        console.error('Error leyendo directorio:', err);
+        return res.status(500).json({ error: 'Error al listar los archivos.' });
+      }
+
+      // Filtrar solo archivos con una cierta extensión si se desea, o todos.
+      // Suponemos que la carpeta solo tiene archivos DICOM.
+      const dicomFiles = files.filter(f => fs.lstatSync(path.join(dirPath, f)).isFile());
+      
+      // Ordenar los archivos (por nombre de archivo, idealmente numérico si tienen un patrón)
+      dicomFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      res.json({ files: dicomFiles });
+    });
+  } catch (error) {
+    console.error('Error en listDicomFiles:', error);
+    res.status(500).json({ error: 'Error interno.' });
+  }
+};
+
+const downloadDicom = async (req, res) => {
+  try {
+    const { studyId, filename } = req.params;
     
     // Obtenemos el estudio validando que exista
     const study = await Study.findByPk(studyId, {
@@ -18,8 +54,8 @@ const downloadDicom = async (req, res) => {
       return res.status(404).send('Estudio no encontrado.');
     }
 
-    // Comprobamos la existencia física del archivo
-    const dicomFilePath = path.resolve(study.filePath);
+    // Comprobamos la existencia física del archivo dentro del directorio
+    const dicomFilePath = path.resolve(study.directoryPath, filename);
     
     if (!fs.existsSync(dicomFilePath)) {
       console.error(`Archivo físico no encontrado: ${dicomFilePath}`);
@@ -28,7 +64,7 @@ const downloadDicom = async (req, res) => {
 
     // Enviamos el archivo
     // NOTA: Con esto evitamos servir archivos en carpetas públicas
-    res.download(dicomFilePath, `study_${studyId}.dcm`, (err) => {
+    res.download(dicomFilePath, filename, (err) => {
       if (err) {
         console.error('Error enviando el archivo:', err);
         if (!res.headersSent) {
@@ -67,5 +103,6 @@ const viewDicom = async (req, res) => {
 
 export {
   downloadDicom,
-  viewDicom
+  viewDicom,
+  listDicomFiles
 };

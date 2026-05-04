@@ -1,5 +1,7 @@
 import mysql from 'mysql2/promise';
 import { sequelize, User, Patient, Study } from './models/index.js';
+import fs from 'fs';
+import path from 'path';
 
 async function seed() {
   try {
@@ -9,7 +11,7 @@ async function seed() {
       user: 'root',
       password: ''
     });
-    
+
     // Creamos la base de datos si no existe
     await connection.query('CREATE DATABASE IF NOT EXISTS visor_dicom;');
     console.log('✅ Base de datos "visor_dicom" garantizada.');
@@ -26,7 +28,7 @@ async function seed() {
       password: 'adminpassword',
       role: 'Admin'
     });
-    
+
     const house = await User.create({
       username: 'dr.house',
       password: 'password123',
@@ -64,23 +66,31 @@ async function seed() {
     console.log('✅ 3 Pacientes creados.');
 
     console.log('5. Asignando Estudios DICOM a Pacientes...');
+    const examplePath = './dicom_storage/P4213734_0/S1_3_6_1_4_1_19179_1_110452026224892_1_8464_2147/M1_3_6_1_4_1_19179_1_110452026224892_2_8614_2148';
+    const examplePath2 = './dicom_storage/P10007415_K/S1_3_6_1_4_1_19179_1_110452026224892_1_6230_2142/M1_3_6_1_4_1_19179_1_110452026224892_2_6586_2143';
+    const examplePath3 = './dicom_storage/P25474032_2/S1_3_6_1_4_1_19179_1_110452026224892_1_709_2202/M1_3_6_1_4_1_19179_1_110452026224892_2_999_2203';
+    // Crear el directorio de ejemplo si no existe
+    if (!fs.existsSync(examplePath)) {
+      fs.mkdirSync(examplePath, { recursive: true });
+    }
+
     await Study.bulkCreate([
       {
         studyType: 'Radiografía de Tórax Frontal',
         date: '2023-01-10',
-        filePath: './dicom_storage/rx_torax.dcm',
+        directoryPath: examplePath2,
         PatientId: p1.id
       },
       {
         studyType: 'Tomografía Computarizada, Cerebro',
         date: '2023-06-22',
-        filePath: './dicom_storage/tc_cerebro.dcm',
-        PatientId: p1.id
+        directoryPath: examplePath3,
+        PatientId: p3.id
       },
       {
         studyType: 'Ecografía Abdominal Completa',
         date: '2023-08-05',
-        filePath: './dicom_storage/eco_abdom.dcm',
+        directoryPath: examplePath2,
         PatientId: p2.id
       }
     ]);

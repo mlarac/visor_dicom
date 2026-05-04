@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 import { sequelize, Patient, Study, AuditLog, User } from './models/index.js';
 import { Op } from 'sequelize';
 import bcrypt from 'bcrypt';
-import { downloadDicom, viewDicom } from './controllers/dicomController.js';
+import { downloadDicom, viewDicom, listDicomFiles } from './controllers/dicomController.js';
 import auditMiddleware from './middlewares/auditMiddleware.js';
 import { isAuthenticated, isAdmin } from './middlewares/authMiddleware.js';
 import * as adminController from './controllers/adminController.js';
@@ -144,7 +144,8 @@ const dicomRouter = express.Router();
 dicomRouter.use(isAuthenticated); 
 
 dicomRouter.get('/visualizar/:studyId', auditMiddleware('Visualización'), viewDicom);
-dicomRouter.get('/descargar/:studyId', auditMiddleware('Descarga'), downloadDicom);
+dicomRouter.get('/archivos/:studyId', auditMiddleware('Listar Archivos DICOM'), listDicomFiles);
+dicomRouter.get('/descargar/:studyId/:filename', auditMiddleware('Descarga'), downloadDicom);
 
 app.use('/dicom', dicomRouter);
 

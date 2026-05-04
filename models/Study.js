@@ -15,9 +15,9 @@ const Study = sequelize.define('Study', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
-  filePath: {
+  directoryPath: {
     type: DataTypes.STRING,
-    allowNull: false // Oculto al usuario final, representa la ruta física
+    allowNull: false // Oculto al usuario final, representa la ruta física del directorio
   }
 });
 
