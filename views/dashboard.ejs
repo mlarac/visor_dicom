@@ -20,6 +20,43 @@
   </div>
 </div>
 
+<% if (typeof recentStudies !== 'undefined' && recentStudies.length > 0 && (!searchQuery || searchQuery === '')) { %>
+<div class="mb-5">
+  <h4 class="fw-bold text-secondary mb-3"><i class="bi bi-clock-history me-2"></i> Últimos Estudios Abiertos</h4>
+  <div class="table-responsive bg-white rounded shadow-sm border">
+    <table class="table table-hover table-elegant mb-0">
+      <thead>
+        <tr>
+          <th>ID Estudio</th>
+          <th>Paciente</th>
+          <th>Fecha</th>
+          <th>Tipo de Estudio</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% recentStudies.forEach(study => { %>
+          <tr>
+            <td><span class="text-secondary fw-medium">#<%= study.id %></span></td>
+            <td><%= study.Patient ? study.Patient.fullName : 'Desconocido' %></td>
+            <td><%= study.date %></td>
+            <td><span class="badge bg-info text-dark"><%= study.studyType %></span></td>
+            <td class="text-end">
+              <a href="/dicom/descargar/<%= study.id %>" class="btn btn-sm btn-outline-secondary rounded-pill me-1" title="Descargar Origen">
+                <i class="bi bi-download"></i>
+              </a>
+              <a href="/dicom/visualizar/<%= study.id %>" class="btn btn-sm btn-primary-corporate py-1 rounded-pill">
+                <i class="bi bi-eye"></i> Visualizar
+              </a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
 <div class="card card-elegant mb-5">
   <div class="card-body p-0">
     <div class="accordion accordion-flush" id="patientsAccordion">

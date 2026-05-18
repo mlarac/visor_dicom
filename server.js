@@ -109,6 +109,36 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     const searchQuery = req.query.q ? req.query.q.trim() : '';
 
     let patients = [];
+    let recentStudies = [];
+
+    // Cargar los últimos 10 estudios abiertos por el usuario
+    const recentLogs = await AuditLog.findAll({
+      where: {
+        userId: req.session.user.id,
+        action: 'Visualización',
+        targetStudyId: { [Op.not]: null }
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 100 // Buscar suficientes para obtener 10 únicos
+    });
+
+    const uniqueStudyIds = [];
+    for (const log of recentLogs) {
+      if (!uniqueStudyIds.includes(log.targetStudyId)) {
+        uniqueStudyIds.push(log.targetStudyId);
+      }
+      if (uniqueStudyIds.length === 10) break;
+    }
+
+    if (uniqueStudyIds.length > 0) {
+      const studies = await Study.findAll({
+        where: { id: { [Op.in]: uniqueStudyIds } },
+        include: [{ model: Patient }]
+      });
+
+      // Mantener el orden reciente
+      recentStudies = uniqueStudyIds.map(id => studies.find(s => s.id === id)).filter(Boolean);
+    }
 
     if (searchQuery) {
       // Requerimiento de auditoría extrema: guardar huella de las búsquedas
@@ -139,7 +169,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       });
     }
     
-    res.render('dashboard', { patients, searchQuery });
+    res.render('dashboard', { patients, searchQuery, recentStudies });
   } catch (err) {
     console.error('Error cargando dashboard', err);
     res.status(500).send('Error del servidor');
