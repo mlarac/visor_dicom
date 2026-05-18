@@ -108,6 +108,8 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     const searchQuery = req.query.q ? req.query.q.trim() : '';
 
+    let patients = [];
+
     if (searchQuery) {
       // Requerimiento de auditoría extrema: guardar huella de las búsquedas
       await AuditLog.create({
@@ -115,22 +117,22 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         action: `Búsqueda (Filtro: ${searchQuery})`,
         ipAddress: req.ip
       });
+
+      const whereClause = {
+        [Op.or]: [
+          { fullName: { [Op.like]: `%${searchQuery}%` } },
+          { rut: { [Op.like]: `%${searchQuery}%` } }
+        ]
+      };
+
+      // Buscar pacientes con filtro e incluir sus estudios
+      patients = await Patient.findAll({
+        where: whereClause,
+        include: [Study],
+        order: [['fullName', 'ASC']],
+        limit: 100 // Límite por seguridad
+      });
     }
-
-    const whereClause = searchQuery ? {
-      [Op.or]: [
-        { firstName: { [Op.like]: `%${searchQuery}%` } },
-        { lastName: { [Op.like]: `%${searchQuery}%` } },
-        { rut: { [Op.like]: `%${searchQuery}%` } }
-      ]
-    } : {};
-
-    // Buscar pacientes con filtro (si existe) e incluir sus estudios
-    const patients = await Patient.findAll({
-      where: whereClause,
-      include: [Study],
-      order: [['lastName', 'ASC']]
-    });
     
     res.render('dashboard', { patients, searchQuery });
   } catch (err) {

@@ -26,7 +26,7 @@ export const createUser = async (req, res) => {
     await User.create({
       username,
       password,
-      role: role || 'Doctor'
+      role: role || 'Usuario'
     });
     res.redirect('/admin/users');
   } catch (error) {

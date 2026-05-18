@@ -18,10 +18,11 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('Admin', 'Doctor'),
-    defaultValue: 'Doctor'
+    type: DataTypes.ENUM('Admin', 'Usuario'),
+    defaultValue: 'Usuario'
   }
 }, {
+  tableName: 'user_visor',
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
