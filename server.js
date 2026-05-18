@@ -118,9 +118,14 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         ipAddress: req.ip
       });
 
+      const searchTerms = searchQuery.split(/\s+/);
+      const nameConditions = searchTerms.map(term => ({
+        fullName: { [Op.like]: `%${term}%` }
+      }));
+
       const whereClause = {
         [Op.or]: [
-          { fullName: { [Op.like]: `%${searchQuery}%` } },
+          { [Op.and]: nameConditions },
           { rut: { [Op.like]: `%${searchQuery}%` } }
         ]
       };
@@ -164,7 +169,7 @@ adminRouter.get('/users/audit/:userId', adminController.getUserAudit);
 app.use('/admin', adminRouter);
 
 // Sincronizar DB e iniciar servidor
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync().then(() => {
   console.log('Base de datos conectada y sincronizada (Modelos y Sesiones).');
   app.listen(PORT, () => {
     console.log(`Servidor Visor DICOM corriendo en http://localhost:${PORT}`);

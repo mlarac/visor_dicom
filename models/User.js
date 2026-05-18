@@ -10,8 +10,7 @@ const User = sequelize.define('User', {
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   password: {
     type: DataTypes.STRING,
@@ -36,7 +35,13 @@ const User = sequelize.define('User', {
         user.password = await bcrypt.hash(user.password, salt);
       }
     }
-  }
+  },
+  indexes: [
+    {
+      unique: true,
+      fields: ['username']
+    }
+  ]
 });
 
 export default User;

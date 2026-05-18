@@ -5,9 +5,10 @@ import path from 'path';
 async function seed() {
   try {
     console.log('1. Sincronizando Modelo de Usuario...');
-    // force: true destruye la tabla y la crea de nuevo (Ideal para resetear datos de prueba)
-    await User.sync({ force: true });
-    console.log('✅ Tabla de usuarios sincronizada correctamente.');
+    await User.sync();
+    // Limpiamos los datos con destroy para no violar las llaves foráneas de auditoría
+    await User.destroy({ where: {}, truncate: false });
+    console.log('✅ Tabla de usuarios sincronizada y limpiada correctamente.');
 
     console.log('2. Creando Usuarios...');
     await User.create({

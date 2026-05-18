@@ -11,7 +11,6 @@ const Patient = sequelize.define('Patient', {
   rut: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
     field: 'Pat_ID'
   },
   fullName: {
