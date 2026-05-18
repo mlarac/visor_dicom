@@ -14,14 +14,14 @@ La aplicación está construida sobre el patrón de diseño **MVC (Modelo-Vista-
 - **`middlewares/`**: Funciones intermedias para la protección de rutas (autenticación y validación de roles como `isAdmin`) y el registro automático de auditoría en la base de datos.
 - **`public/`**: Recursos estáticos (CSS, JS). Aquí se ubica la lógica del lado del cliente que integra el visor médico.
 - **`dicom_storage/`**: Almacenamiento local para los archivos `.dcm`.
-- **`config/`**: Archivos de configuración para la conexión con la base de datos MySQL.
+- **`config/`**: Archivos de configuración para la conexión con la base de datos SQL Server.
 
 ## Tecnologías Utilizadas
 
 ### Backend
 - **[Node.js](https://nodejs.org/) & [Express.js](https://expressjs.com/es/)**: Entorno de ejecución y framework web principal (`express v5.2`).
-- **[MySQL](https://www.mysql.com/)**: Motor de base de datos relacional.
-- **[Sequelize](https://sequelize.org/)**: ORM empleado para interactuar de forma segura con MySQL, manejar migraciones y sincronizar modelos.
+- **[SQL Server](https://www.microsoft.com/sql-server/)**: Motor de base de datos relacional.
+- **[Sequelize](https://sequelize.org/)**: ORM empleado para interactuar de forma segura con SQL Server, manejar migraciones y sincronizar modelos.
 - **Seguridad y Gestión de Sesiones**: 
   - `bcrypt`: Para el almacenamiento de contraseñas mediante hashing seguro.
   - `express-session`: Gestión de sesiones de usuario con mitigación contra ataques XSS y CSRF.
@@ -39,7 +39,7 @@ La aplicación está construida sobre el patrón de diseño **MVC (Modelo-Vista-
 
 ## Puesta en Marcha
 
-1. Asegúrate de tener Node.js y MySQL instalados y corriendo en tu entorno.
+1. Asegúrate de tener Node.js y SQL Server instalados y corriendo en tu entorno.
 2. Clona el repositorio e instala las dependencias:
    ```bash
    npm install

@@ -1,10 +1,9 @@
 import { Sequelize } from 'sequelize';
 
-// Configuración de la conexión a MySQL
-const sequelize = new Sequelize('visor_dicom', 'root', '', {
-  host: 'localhost',
-  dialect: 'mysql',
-  logging: false, // Desactiva el log de SQL para consola (opcional)
+// Configuración de la conexión a SQL Server
+const sequelize = new Sequelize('MiGlobal_Historico', 'sa', 'PASSBD', {
+  host: 'SAR-PEDRO',
+  dialect: 'mssql',
   pool: {
     max: 5,
     min: 0,
