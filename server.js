@@ -39,7 +39,7 @@ const sessionStore = new SequelizeStore({
 });
 
 app.use(session({
-  secret: 'my-super-secret-key-dicom', // En producción, usar variable de entorno
+  secret: process.env.SESSION_SECRET, // En producción, usar variable de entorno
   store: sessionStore,
   resave: false, // No guardar si no hubo cambios
   saveUninitialized: false, // No guardar sesiones vacías
