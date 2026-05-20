@@ -1,12 +1,9 @@
-import { User, AuditLog } from '../models/index.js';
+import * as adminService from '../services/adminService.js';
 
 // ---- LISTADO DE USUARIOS ----
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.findAll({
-      attributes: { exclude: ['password'] },
-      order: [['id', 'ASC']]
-    });
+    const users = await adminService.getAllUsers();
     res.render('admin_users', { users });
   } catch (error) {
     console.error(error);
@@ -23,7 +20,7 @@ export const getCreateUserForm = (req, res) => {
 export const createUser = async (req, res) => {
   try {
     const { username, password, role } = req.body;
-    await User.create({
+    await adminService.createUser({
       username,
       password,
       role: role || 'Usuario'
@@ -40,12 +37,12 @@ export const createUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    // Evitar que el admin se borre a si mismo por error (opcional pero buena prácita)
+    // Evitar que el admin se borre a sí mismo por error (opcional pero buena práctica)
     if (parseInt(userId) === req.session.user.id) {
        return res.status(400).send('No puedes eliminarte a ti mismo.');
     }
     
-    await User.destroy({ where: { id: userId } });
+    await adminService.deleteUserById(userId);
     res.redirect('/admin/users');
   } catch (error) {
     console.error(error);
@@ -59,13 +56,10 @@ export const getUserAudit = async (req, res) => {
     const { userId } = req.params;
     
     // Validar usuario
-    const targetUser = await User.findByPk(userId, { attributes: ['id', 'username', 'role'] });
+    const targetUser = await adminService.getUserById(userId);
     if (!targetUser) return res.status(404).send('Usuario no encontrado');
 
-    const logs = await AuditLog.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']]
-    });
+    const logs = await adminService.getUserAuditLogs(userId);
 
     res.render('admin_audit', { targetUser, logs });
   } catch (error) {

@@ -1,14 +1,14 @@
-import { Study, Patient, AuditLog } from '../models/index.js';
+import * as dicomService from '../services/dicomService.js';
 import path from 'path';
 import fs from 'fs';
 
 /**
- * Servicio para servir archivos DICOM verificando la ruta física
+ * Servicio para servir archivos DICOM verificando la ruta física.
  */
 const listDicomFiles = async (req, res) => {
   try {
     const { studyId } = req.params;
-    const study = await Study.findByPk(studyId);
+    const study = await dicomService.getStudyById(studyId);
 
     if (!study) {
       return res.status(404).json({ error: 'Estudio no encontrado.' });
@@ -46,9 +46,7 @@ const downloadDicom = async (req, res) => {
     const { studyId, filename } = req.params;
     
     // Obtenemos el estudio validando que exista
-    const study = await Study.findByPk(studyId, {
-      include: [Patient]
-    });
+    const study = await dicomService.getStudyWithPatient(studyId);
 
     if (!study) {
       return res.status(404).send('Estudio no encontrado.');
@@ -80,14 +78,14 @@ const downloadDicom = async (req, res) => {
 };
 
 /**
- * Renderiza la vista de Cornerstone.js para visualización
+ * Renderiza la vista de Cornerstone.js para visualización.
  */
 const viewDicom = async (req, res) => {
   try {
     const { studyId } = req.params;
     
-    // Validar existencia de estudio y permisos (la sesión la maneja un middleware general)
-    const study = await Study.findByPk(studyId);
+    // Validar existencia de estudio
+    const study = await dicomService.getStudyById(studyId);
     if (!study) {
       return res.status(404).send('Estudio no encontrado.');
     }
