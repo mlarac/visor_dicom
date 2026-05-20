@@ -4,7 +4,7 @@ import * as authService from '../services/authService.js';
  * Redirige al dashboard si hay sesión activa, o a la vista de login en caso contrario.
  */
 export const redirectHome = (req, res) => {
-  if (req.session && req.session.user) {
+  if (req.session?.user) {
     res.redirect('/dashboard');
   } else {
     res.redirect('/login');
@@ -15,7 +15,7 @@ export const redirectHome = (req, res) => {
  * Renderiza la vista de login. Si ya tiene sesión activa, redirige al dashboard.
  */
 export const renderLogin = (req, res) => {
-  if (req.session && req.session.user) {
+  if (req.session?.user) {
     return res.redirect('/dashboard');
   }
   res.render('login');

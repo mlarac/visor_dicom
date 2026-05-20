@@ -12,7 +12,7 @@ const auditMiddleware = (action) => {
       const targetPatientId = req.params?.patientId || req.query?.patientId || req.body?.patientId || null;
       const targetStudyId = req.params?.studyId || req.query?.studyId || req.body?.studyId || null;
       
-      const userId = req.session && req.session.user ? req.session.user.id : null;
+      const userId = req.session?.user ? req.session.user.id : null;
 
       // Creamos el registro en la base de datos antes de continuar
       await AuditLog.create({

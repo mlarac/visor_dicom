@@ -1,6 +1,6 @@
 import * as dicomService from '../services/dicomService.js';
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 
 /**
  * Servicio para servir archivos DICOM verificando la ruta física.

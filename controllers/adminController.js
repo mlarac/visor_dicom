@@ -38,7 +38,7 @@ export const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
     // Evitar que el admin se borre a sí mismo por error (opcional pero buena práctica)
-    if (parseInt(userId) === req.session.user.id) {
+    if (Number.parseInt(userId) === req.session.user.id) {
        return res.status(400).send('No puedes eliminarte a ti mismo.');
     }
     
