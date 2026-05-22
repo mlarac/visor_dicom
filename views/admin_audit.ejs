@@ -1,0 +1,78 @@
+<%- include('partials/header', { title: 'Trazabilidad de Usuario' }) %>
+
+<div class="mb-4">
+  <div class="d-flex align-items-center">
+    <a href="/admin/users" class="btn btn-sm btn-light border rounded-pill me-3">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <div>
+      <h2 class="fw-bold text-gradient mb-0"><i class="bi bi-shield-check me-2"></i>Auditoría de Actividad</h2>
+      <p class="text-secondary mb-0">Trazabilidad criptográfica del usuario: <strong class="text-dark"><%= targetUser.username %></strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="card card-elegant">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-elegant mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4">Código de Evento</th>
+            <th>Fecha y Hora</th>
+            <th>Acción Registrada</th>
+            <th>Firma de IP Local</th>
+            <th class="text-end pe-4">Registros Afectados</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (logs && logs.length > 0) { %>
+            <% logs.forEach(log => { %>
+              <tr>
+                <td class="ps-4 text-secondary small">LOG-<%= log.id %></td>
+                <td>
+                  <span class="badge bg-light text-dark border fw-medium">
+                    <i class="bi bi-clock me-1"></i>
+                    <%= new Date(log.createdAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) %>
+                  </span>
+                </td>
+                <td class="fw-medium">
+                  <% if (log.action.includes('Búsqueda')) { %>
+                    <span class="text-primary"><i class="bi bi-search me-1"></i> <%= log.action %></span>
+                  <% } else if (log.action.includes('Visualización')) { %>
+                    <span class="text-success"><i class="bi bi-eye-fill me-1"></i> <%= log.action %></span>
+                  <% } else if (log.action.includes('Descarga')) { %>
+                    <span class="text-info"><i class="bi bi-cloud-arrow-down-fill me-1"></i> <%= log.action %></span>
+                  <% } else { %>
+                    <span class="text-secondary"><i class="bi bi-record-circle me-1"></i> <%= log.action %></span>
+                  <% } %>
+                </td>
+                <td><code class="text-muted"><%= log.ipAddress || 'Desconocida' %></code></td>
+                <td class="text-end pe-4">
+                  <% if (log.targetPatientId) { %>
+                    <span class="badge bg-secondary">Paciente: <%= log.targetPatientId.substring(0, 8) %>...</span>
+                  <% } %>
+                  <% if (log.targetStudyId) { %>
+                    <span class="badge bg-dark">Estudio #<%= log.targetStudyId %></span>
+                  <% } %>
+                  <% if (!log.targetPatientId && !log.targetStudyId) { %>
+                    <span class="text-muted small">N/A</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="5" class="text-center py-5 text-secondary">
+                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                Este usuario no ha generado ningún registro de actividad aún.
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

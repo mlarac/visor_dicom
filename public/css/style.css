@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --corporate-primary: #0F52BA; /* Azul zafiro corporativo */
+  --corporate-secondary: #00A86B; /* Verde jade */
+  --bg-color: #F4F7FB;
+  --surface-color: #FFFFFF;
+  --text-primary: #2C3E50;
+  --text-secondary: #6C757D;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism / Elegant Cards */
+.card-elegant {
+  background: var(--surface-color);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-elegant:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.navbar-corporate {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  color: var(--corporate-primary) !important;
+  letter-spacing: -0.5px;
+}
+
+.btn-primary-corporate {
+  background-color: var(--corporate-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-corporate:hover {
+  background-color: #0c4399;
+  color: white;
+  box-shadow: 0 4px 15px rgba(15, 82, 186, 0.3);
+  transform: translateY(-1px);
+}
+
+.table-elegant {
+  background: var(--surface-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-elegant th {
+  background-color: #F1F4F8;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  border: none;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.table-elegant td {
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f4f8;
+  color: var(--text-primary);
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+/* Gradient text for titles */
+.text-gradient {
+  background: linear-gradient(135deg, var(--corporate-primary), #3498db);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.login-container {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
