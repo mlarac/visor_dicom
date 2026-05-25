@@ -94,7 +94,7 @@
   <script src="/vendor/dicom-parser/dist/dicomParser.js"></script>
   <script src="/vendor/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
   <!-- Hammer.js (Requerido por cornerstoneTools v3+) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="/vendor/hammerjs/hammer.min.js"></script>
 
   <script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -140,7 +140,7 @@
           document.getElementById('imageCount').textContent = data.files.length;
 
           // Generar los imageIds
-          const imageIds = data.files.map(filename => 'wadouri:/dicom/descargar/<%= studyId %>/' + filename);
+          const imageIds = data.files.map(filename => 'wadouri:/dicom/archivos/<%= studyId %>/' + encodeURIComponent(filename));
 
           // Cargar la primera imagen para extraer metadatos y mostrarla
           cornerstone.loadImage(imageIds[0]).then((image) => {
