@@ -1,141 +1,166 @@
-<%- include('partials/header', { title: 'Panel Histórico', session: session }) %>
+<%- include('partials/header', { title: 'Panel Histórico' , session: session }) %>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h2 class="fw-bold text-gradient mb-0">Histórico de Estudios</h2>
-    <p class="text-secondary mb-0">Gestión de pacientes y repositorios DICOM</p>
-  </div>
-  <div class="col-md-5">
-    <form action="/dashboard" method="GET" class="d-flex shadow-sm rounded">
-      <input type="text" name="q" class="form-control border-0 bg-white" placeholder="Buscar por RUT, Nombre..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
-      <button type="submit" class="btn btn-primary-corporate text-nowrap rounded-end px-4">
-        <i class="bi bi-search me-1"></i> Buscar
-      </button>
-      <% if (typeof searchQuery !== 'undefined' && searchQuery !== '') { %>
-        <a href="/dashboard" class="btn btn-light border ms-2 rounded" title="Limpiar filtro" data-bs-toggle="tooltip">
-          <i class="bi bi-x-lg text-danger"></i>
-        </a>
-      <% } %>
-    </form>
-  </div>
-</div>
 
-<% if (typeof recentStudies !== 'undefined' && recentStudies.length > 0 && (!searchQuery || searchQuery === '')) { %>
-<div class="mb-5">
-  <h4 class="fw-bold text-secondary mb-3"><i class="bi bi-clock-history me-2"></i> Últimos Estudios Abiertos</h4>
-  <div class="table-responsive bg-white rounded shadow-sm border">
-    <table class="table table-hover table-elegant mb-0">
-      <thead>
-        <tr>
-          <th>ID Estudio</th>
-          <th>Paciente</th>
-          <th>Fecha</th>
-          <th>Tipo de Estudio</th>
-          <th class="text-end">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% recentStudies.forEach(study => { %>
-          <tr>
-            <td><span class="text-secondary fw-medium">#<%= study.id %></span></td>
-            <td><%= study.Patient ? study.Patient.fullName : 'Desconocido' %></td>
-            <td><%= study.date %></td>
-            <td><span class="badge bg-info text-dark"><%= study.studyType %></span></td>
-            <td class="text-end">
-              <a href="/dicom/descargar/<%= study.id %>" class="btn btn-sm btn-outline-secondary rounded-pill me-1" title="Descargar Origen">
-                <i class="bi bi-download"></i>
-              </a>
-              <a href="/dicom/visualizar/<%= study.id %>" class="btn btn-sm btn-primary-corporate py-1 rounded-pill">
-                <i class="bi bi-eye"></i> Visualizar
-              </a>
-            </td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
-</div>
-<% } %>
 
-<div class="card card-elegant mb-5">
-  <div class="card-body p-0">
-    <div class="accordion accordion-flush" id="patientsAccordion">
-      
-      <% if (patients && patients.length > 0) { %>
-        <% patients.forEach((patient, index) => { %>
-          <div class="accordion-item border-bottom">
-            <h2 class="accordion-header" id="heading-<%= patient.id %>">
-              <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= patient.id %>" aria-expanded="false">
-                <div class="d-flex w-100 justify-content-between me-3 align-items-center">
-                  <div>
-                    <strong><%= patient.fullName %></strong>
-                    <span class="badge bg-light text-dark ms-2 border">RUT: <%= patient.rut %></span>
-                    <% if(patient.sex) { %>
-                      <span class="badge bg-secondary text-white ms-1">Sexo: <%= patient.sex %></span>
-                    <% } %>
-                  </div>
-                  <span class="text-secondary small">
-                    <i class="bi bi-folder-fill text-warning me-1"></i> 
-                    <%= patient.Studies ? patient.Studies.length : 0 %> Estudio(s)
-                  </span>
-                </div>
-              </button>
-            </h2>
-            <div id="collapse-<%= patient.id %>" class="accordion-collapse collapse" data-bs-parent="#patientsAccordion">
-              <div class="accordion-body bg-light">
-                
-                <% if (patient.Studies && patient.Studies.length > 0) { %>
-                  <div class="table-responsive bg-white rounded shadow-sm border">
-                    <table class="table table-hover table-elegant mb-0">
-                      <thead>
-                        <tr>
-                          <th>ID Estudio</th>
-                          <th>Fecha</th>
-                          <th>Tipo de Estudio</th>
-                          <th class="text-end">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <% patient.Studies.forEach(study => { %>
-                          <tr>
-                            <td><span class="text-secondary fw-medium">#<%= study.id %></span></td>
-                            <td><%= study.date %></td>
-                            <td><span class="badge bg-info text-dark"><%= study.studyType %></span></td>
-                            <td class="text-end">
-                              <a href="/dicom/descargar/<%= study.id %>" class="btn btn-sm btn-outline-secondary rounded-pill me-1" title="Descargar Origen">
-                                <i class="bi bi-download"></i>
-                              </a>
-                              <a href="/dicom/visualizar/<%= study.id %>" class="btn btn-sm btn-primary-corporate py-1 rounded-pill">
-                                <i class="bi bi-eye"></i> Visualizar
-                              </a>
-                            </td>
-                          </tr>
-                        <% }) %>
-                      </tbody>
-                    </table>
-                  </div>
-                <% } else { %>
-                  <p class="text-secondary mb-0 p-3 text-center"><i class="bi bi-info-circle me-1"></i> No hay estudios registrados para este paciente.</p>
-                <% } %>
-                
-              </div>
-            </div>
-          </div>
-        <% }) %>
-      <% } else if (typeof searchQuery === 'undefined' || searchQuery === '') { %>
-        <div class="p-5 text-center text-secondary">
-          <i class="bi bi-search fs-1"></i>
-          <p class="mt-3 fs-5">Ingrese un RUT o Nombre en el buscador para encontrar pacientes.</p>
-        </div>
-      <% } else { %>
-        <div class="p-5 text-center text-secondary">
-          <i class="bi bi-inbox fs-1"></i>
-          <p class="mt-2">No se encontraron pacientes que coincidan con la búsqueda.</p>
-        </div>
-      <% } %>
-
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold text-gradient mb-0">Histórico de Estudios</h2>
+      <p class="text-secondary mb-0">Gestión de pacientes y repositorios DICOM</p>
+    </div>
+    <div class="col-md-5">
+      <form action="/dashboard" method="GET" class="d-flex shadow-sm rounded">
+        <input type="text" name="q" class="form-control border-0 bg-white" placeholder="Buscar por RUT, Nombre..."
+          value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+        <button type="submit" class="btn btn-primary-corporate text-nowrap rounded-end px-4">
+          <i class="bi bi-search me-1"></i> Buscar
+        </button>
+        <% if (typeof searchQuery !=='undefined' && searchQuery !=='' ) { %>
+          <a href="/dashboard" class="btn btn-light border ms-2 rounded" title="Limpiar filtro"
+            data-bs-toggle="tooltip">
+            <i class="bi bi-x-lg text-danger"></i>
+          </a>
+          <% } %>
+      </form>
     </div>
   </div>
-</div>
 
-<%- include('partials/footer') %>
+  <% if (typeof recentStudies !=='undefined' && recentStudies.length> 0 && (!searchQuery || searchQuery === '')) { %>
+    <div class="mb-5">
+      <h4 class="fw-bold text-secondary mb-3"><i class="bi bi-clock-history me-2"></i> Últimos Estudios Abiertos</h4>
+      <div class="table-responsive bg-white rounded shadow-sm border">
+        <table class="table table-hover table-elegant mb-0">
+          <thead>
+            <tr>
+              <th>ID Estudio</th>
+              <th>Paciente</th>
+              <th>Fecha</th>
+              <th>Tipo de Estudio</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentStudies.forEach(study=> { %>
+              <tr>
+                <td><span class="text-secondary fw-medium">#<%= study.id %></span></td>
+                <td>
+                  <%= study.Patient ? study.Patient.fullName : 'Desconocido' %>
+                </td>
+                <td>
+                  <%= study.date %>
+                </td>
+
+                <td><span class="badge bg-info text-dark">
+                    <%= study.studyType %>
+                  </span></td>
+                <td class="text-end">
+                  <a href="/dicom/descargar/<%= study.id %>" class="btn btn-sm btn-outline-secondary rounded-pill me-1"
+                    title="Descargar Origen">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <a href="/dicom/visualizar/<%= study.id %>"
+                    class="btn btn-sm btn-primary-corporate py-1 rounded-pill">
+                    <i class="bi bi-eye"></i> Visualizar
+                  </a>
+                </td>
+              </tr>
+              <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
+      <div class="card card-elegant mb-5">
+        <div class="card-body p-0">
+          <div class="accordion accordion-flush" id="patientsAccordion">
+
+            <% if (patients && patients.length> 0) { %>
+              <% patients.forEach((patient, index)=> { %>
+                <div class="accordion-item border-bottom">
+                  <h2 class="accordion-header" id="heading-<%= patient.id %>">
+                    <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#collapse-<%= patient.id %>" aria-expanded="false">
+                      <div class="d-flex w-100 justify-content-between me-3 align-items-center">
+                        <div>
+                          <strong>
+                            <%= patient.fullName %>
+                          </strong>
+                          <span class="badge bg-light text-dark ms-2 border">RUT: <%= patient.rut %></span>
+                          <% if(patient.sex) { %>
+                            <span class="badge bg-secondary text-white ms-1">Sexo: <%= patient.sex %></span>
+                            <% } %>
+                        </div>
+                        <span class="text-secondary small">
+                          <i class="bi bi-folder-fill text-warning me-1"></i>
+                          <%= patient.Studies ? patient.Studies.length : 0 %> Estudio(s)
+                        </span>
+                      </div>
+                    </button>
+                  </h2>
+                  <div id="collapse-<%= patient.id %>" class="accordion-collapse collapse"
+                    data-bs-parent="#patientsAccordion">
+                    <div class="accordion-body bg-light">
+
+                      <% if (patient.Studies && patient.Studies.length> 0) { %>
+                        <div class="table-responsive bg-white rounded shadow-sm border">
+                          <table class="table table-hover table-elegant mb-0">
+                            <thead>
+                              <tr>
+                                <th>ID Estudio</th>
+                                <th>Fecha</th>
+                                <th>Tipo de Estudio</th>
+                                <th class="text-end">Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <% patient.Studies.forEach(study=> { %>
+                                <tr>
+                                  <td><span class="text-secondary fw-medium">#<%= study.id %></span></td>
+                                  <td>
+                                    <%= study.date %>
+                                  </td>
+                                  <td><span class="badge bg-info text-dark">
+                                      <%= study.studyType %>
+                                    </span></td>
+                                  <td class="text-end">
+                                    <a href="/dicom/descargar/<%= study.id %>"
+                                      class="btn btn-sm btn-outline-secondary rounded-pill me-1"
+                                      title="Descargar Origen">
+                                      <i class="bi bi-download"></i>
+                                    </a>
+                                    <a href="/dicom/visualizar/<%= study.id %>"
+                                      class="btn btn-sm btn-primary-corporate py-1 rounded-pill">
+                                      <i class="bi bi-eye"></i> Visualizar
+                                    </a>
+                                  </td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                          </table>
+                        </div>
+                        <% } else { %>
+                          <p class="text-secondary mb-0 p-3 text-center"><i class="bi bi-info-circle me-1"></i> No hay
+                            estudios registrados para este paciente.</p>
+                          <% } %>
+
+                    </div>
+                  </div>
+                </div>
+                <% }) %>
+                  <% } else if (typeof searchQuery==='undefined' || searchQuery==='' ) { %>
+                    <div class="p-5 text-center text-secondary">
+                      <i class="bi bi-search fs-1"></i>
+                      <p class="mt-3 fs-5">Ingrese un RUT o Nombre en el buscador para encontrar pacientes.</p>
+                    </div>
+                    <% } else { %>
+                      <div class="p-5 text-center text-secondary">
+                        <i class="bi bi-inbox fs-1"></i>
+                        <p class="mt-2">No se encontraron pacientes que coincidan con la búsqueda.</p>
+                      </div>
+                      <% } %>
+
+          </div>
+        </div>
+      </div>
+
+      <%- include('partials/footer') %>

@@ -1,52 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof title !== 'undefined' ? title + ' - Visor DICOM' : 'Sistema Visor DICOM' %></title>
-  
+  <title>
+    <%= typeof title !=='undefined' ? title + ' - Visor DICOM' : 'Sistema Visor DICOM' %>
+  </title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+
   <!-- Bootstrap 5 CSS -->
   <link href="/vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-  
+
   <!-- Custom Corporate CSS -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
-  
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light navbar-corporate sticky-top">
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center" href="/">
-      <i class="bi bi-heart-pulse-fill text-primary me-2 fs-3"></i>
-      VISOR DICOM
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-      <ul class="navbar-nav align-items-center">
-        <% if (typeof session !== 'undefined' && session.user) { %>
-          <% if (session.user.role === 'Admin') { %>
-            <li class="nav-item me-3">
-              <a class="nav-link fw-semibold text-primary" href="/admin/users">
-                <i class="bi bi-gear-fill"></i> Administración
-              </a>
-            </li>
-          <% } %>
-          <li class="nav-item me-4 text-secondary fw-medium">
-            <i class="bi bi-person-circle me-1"></i> Sesión activa
-          </li>
-          <li class="nav-item">
-            <a class="btn btn-outline-danger btn-sm rounded-pill px-3" href="/logout">
-               <i class="bi bi-box-arrow-right"></i> Salir
-            </a>
-          </li>
-        <% } %>
-      </ul>
-    </div>
-  </div>
-</nav>
 
-<main class="container my-5">
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light navbar-corporate sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="/">
+        <i class="bi bi-heart-pulse-fill text-primary me-2 fs-3"></i>
+        VISOR DICOM
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav align-items-center">
+          <% if (typeof session !=='undefined' && session.user) { %>
+            <% if (session.user.role==='Admin' ) { %>
+              <li class="nav-item me-3">
+                <a class="nav-link fw-semibold text-primary" href="/admin/users">
+                  <i class="bi bi-gear-fill"></i> Administración
+                </a>
+              </li>
+              <% } %>
+                <li class="nav-item me-4 text-secondary fw-medium">
+                  <i class="bi bi-person-circle me-1"></i> Sesión activa
+                </li>
+                <li class="nav-item">
+                  <a class="btn btn-outline-danger btn-sm rounded-pill px-3" href="/logout">
+                    <i class="bi bi-box-arrow-right"></i> Salir
+                  </a>
+                </li>
+                <% } %>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5">

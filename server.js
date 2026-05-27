@@ -29,8 +29,8 @@ app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 const sessionStore = new SequelizeStore({
   db: sequelize,
   tableName: 'Sessions', // Por defecto crearía 'Sessions'
-  checkExpirationInterval: 15 * 60 * 1000, // Limpiar sesiones expiradas cada 15 min
-  expiration: 24 * 60 * 60 * 1000 // Sesión válida por 24 horas
+  checkExpirationInterval: 5 * 60 * 1000, // Limpiar sesiones expiradas cada 5 min
+  expiration: 30 * 60 * 1000 // Expiración por inactividad tras 30 minutos
 });
 
 app.use(session({
@@ -38,11 +38,12 @@ app.use(session({
   store: sessionStore,
   resave: false, // No guardar si no hubo cambios
   saveUninitialized: false, // No guardar sesiones vacías
+  rolling: true, // Renueva la expiración de la cookie con cada interacción
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true si usa HTTPS
     httpOnly: true, // Protege contra XSS
     sameSite: 'lax', // Protege contra CSRF (CSRF Mitigation)
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 15 * 60 * 1000 // Expira tras 15 minutos de inactividad
   }
 }));
 
