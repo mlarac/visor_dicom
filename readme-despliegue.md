@@ -48,6 +48,9 @@ SESSION_SECRET=GeneraUnaCadenaLargaYSecretaAqui
 
 > **Nota:** Cambia el `PORT` a `80` si deseas acceder a la aplicación sin especificar el puerto en el navegador, asegurándote de que el puerto no esté en uso por IIS u otra aplicación.
 
+> [!WARNING]
+> **Carga nativa de variables (.env)**: Este proyecto utiliza el soporte nativo de variables de entorno de Node.js (`--env-file`). Por lo tanto, no se debe ejecutar el comando `node server.js` directamente en la terminal, sino usar `npm start` para que se aplique correctamente la bandera `--env-file=.env`.
+
 ---
 
 ## 3. Preparación del Almacenamiento DICOM (Archivos en otra partición o red)
@@ -84,6 +87,15 @@ Para asegurar que la aplicación se mantenga en ejecución en segundo plano, se 
    ```cmd
    pm2 start npm --name "VisorDICOM" -- start
    ```
+
+   > [!IMPORTANT]
+   > **Carga de Variables de Entorno en PM2**: 
+   > * Si inicias usando npm (el comando anterior), PM2 respetará el script `start` de tu `package.json` y cargará el archivo `.env`.
+   > * Si prefieres iniciar apuntando directamente al archivo `server.js`, es obligatorio pasar la bandera `--env-file`:
+   >   ```cmd
+   >   pm2 start server.js --name "VisorDICOM" --node-args="--env-file=.env"
+   >   ```
+   >   Si no lo haces, obtendrás errores de conexión en la base de datos porque las variables de entorno de SQL Server no se cargarán.
 
 3. Instala el módulo de PM2 para configurar el inicio automático con Windows:
    ```cmd

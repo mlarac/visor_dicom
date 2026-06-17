@@ -33,7 +33,7 @@ const Study = sequelize.define('Study', {
     type: DataTypes.STRING,
     field: 'Branch_Name'
   },
-  procStart: {
+  date: {
     type: DataTypes.DATE,
     field: 'Proc_Start'
   },
@@ -66,7 +66,7 @@ const Study = sequelize.define('Study', {
     type: DataTypes.STRING,
     field: 'Modalities_In_Study'
   },
-  date: {
+  receivingDate: {
     type: DataTypes.DATEONLY,
     allowNull: false,
     field: 'Receiving_Date'
