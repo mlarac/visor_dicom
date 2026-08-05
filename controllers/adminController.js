@@ -54,16 +54,19 @@ export const deleteUser = async (req, res) => {
 export const getUserAudit = async (req, res) => {
   try {
     const { userId } = req.params;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = 20;
     
     // Validar usuario
     const targetUser = await adminService.getUserById(userId);
     if (!targetUser) return res.status(404).send('Usuario no encontrado');
 
-    const logs = await adminService.getUserAuditLogs(userId);
+    const { logs, total, totalPages, hasMore } = await adminService.getUserAuditLogs(userId, page, limit);
 
-    res.render('admin_audit', { targetUser, logs });
+    res.render('admin_audit', { targetUser, logs, page, total, totalPages, hasMore });
   } catch (error) {
     console.error(error);
     res.status(500).send('Error obteniendo trazabilidad');
   }
 };
+
