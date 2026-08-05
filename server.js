@@ -40,7 +40,7 @@ app.use(session({
   saveUninitialized: false, // No guardar sesiones vacías
   rolling: true, // Renueva la expiración de la cookie con cada interacción
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true si usa HTTPS
+    secure: process.env.COOKIE_SECURE === 'true', // true solo si se usa HTTPS (configurable en .env)
     httpOnly: true, // Protege contra XSS
     sameSite: 'lax', // Protege contra CSRF (CSRF Mitigation)
     maxAge: 15 * 60 * 1000 // Expira tras 15 minutos de inactividad
