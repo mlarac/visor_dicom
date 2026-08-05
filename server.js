@@ -4,6 +4,8 @@ import ConnectSessionSequelize from 'connect-session-sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import compression from 'compression';
+
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,10 +22,12 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middlewares básicos
+app.use(compression());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true }));
+app.use('/vendor', express.static(path.join(__dirname, 'node_modules'), { maxAge: '7d', etag: true }));
+
 
 // Configuración de la Sesión con connect-session-sequelize
 const sessionStore = new SequelizeStore({

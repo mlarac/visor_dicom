@@ -16,6 +16,7 @@
     "bcrypt": "^6.0.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "compression": "^1.8.1",
     "connect-session-sequelize": "^8.0.6",
     "cornerstone-core": "^2.6.1",
     "cornerstone-math": "^0.1.10",
