@@ -4,6 +4,8 @@ import ConnectSessionSequelize from 'connect-session-sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import compression from 'compression';
+
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,10 +22,12 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middlewares básicos
+app.use(compression());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true }));
+app.use('/vendor', express.static(path.join(__dirname, 'node_modules'), { maxAge: '7d', etag: true }));
+
 
 // Configuración de la Sesión con connect-session-sequelize
 const sessionStore = new SequelizeStore({
@@ -40,7 +44,7 @@ app.use(session({
   saveUninitialized: false, // No guardar sesiones vacías
   rolling: true, // Renueva la expiración de la cookie con cada interacción
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true si usa HTTPS
+    secure: process.env.COOKIE_SECURE === 'true', // true solo si se usa HTTPS (configurable en .env)
     httpOnly: true, // Protege contra XSS
     sameSite: 'lax', // Protege contra CSRF (CSRF Mitigation)
     maxAge: 15 * 60 * 1000 // Expira tras 15 minutos de inactividad

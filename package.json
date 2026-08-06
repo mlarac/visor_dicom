@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node --env-file=.env server.js",
+    "prod": "cross-env NODE_ENV=production node --env-file=.env server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
     "bcrypt": "^6.0.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "compression": "^1.8.1",
     "connect-session-sequelize": "^8.0.6",
     "cornerstone-core": "^2.6.1",
     "cornerstone-math": "^0.1.10",
@@ -29,5 +31,8 @@
     "sequelize": "^6.37.8",
     "tedious": "^19.2.1",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }

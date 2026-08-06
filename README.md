@@ -37,16 +37,69 @@ La aplicación está construida sobre el patrón de diseño **MVC (Modelo-Vista-
   - `cornerstone-wado-image-loader`: Cargador de imágenes compatible con el estándar DICOM P10.
   - `dicom-parser`: Para la lectura de metadatos del estándar DICOM.
 
+## Variables de Entorno
+
+Crea un archivo `.env` en la raíz del proyecto basándote en el archivo de ejemplo `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+### Ejemplo de Archivo `.env`:
+
+```env
+# Puerto del servidor
+PORT=3000
+
+# Conexión a la base de datos SQL Server
+DB_HOST=localhost
+DB_PORT=1433
+DB_NAME=MiGlobal
+DB_USER=visor
+DB_PASSWORD=tu_contraseña_aqui
+
+# Clave secreta para firmar sesiones Express
+SESSION_SECRET=cambia_esta_clave_secreta_en_produccion
+
+# Seguridad de Cookie (false si se ejecuta sobre HTTP, true si usa HTTPS)
+COOKIE_SECURE=false
+
+# Entorno de ejecución (development / production)
+NODE_ENV=production
+```
+
+### Descripción de Variables
+
+| Variable | Descripción | Ejemplo / Defecto |
+| --- | --- | --- |
+| `PORT` | Puerto donde escuchará la aplicación web | `3000` |
+| `DB_HOST` | Dirección del servidor SQL Server | `localhost` |
+| `DB_PORT` | Puerto de conexión a SQL Server | `1433` |
+| `DB_NAME` | Nombre de la base de datos relacional | `MiGlobal` |
+| `DB_USER` | Usuario de autenticación en SQL Server | `visor` |
+| `DB_PASSWORD` | Contraseña del usuario de la base de datos | `******` |
+| `SESSION_SECRET` | String único para firmar las cookies de sesión | `clave_secreta` |
+| `COOKIE_SECURE` | Exige HTTPS en las cookies (`true` o `false`) | `false` |
+| `NODE_ENV` | Entorno de ejecución del servidor | `production` |
+
 ## Puesta en Marcha
 
-1. Asegúrate de tener Node.js y SQL Server instalados y corriendo en tu entorno.
-2. Clona el repositorio e instala las dependencias:
+1. Asegúrate de tener **Node.js** y **SQL Server** instalados y ejecutándose en tu entorno.
+2. Clona el repositorio e instala las dependencias del proyecto:
    ```bash
    npm install
    ```
-3. Configura las credenciales de tu base de datos (revisa el directorio `config/`).
-4. Inicia el servidor. La base de datos se sincronizará automáticamente (`{ alter: true }`):
+3. Copia el archivo `.env.example` a `.env` y ajusta tus credenciales:
    ```bash
-   node server.js
+   cp .env.example .env
+   ```
+4. Inicia el servidor:
+   ```bash
+   # En producción
+   npm run prod
+
+   # O directamente mediante ejecutor de Node
+   node --env-file=.env server.js
    ```
 5. Accede desde tu navegador a `http://localhost:3000`.
+

@@ -46,13 +46,28 @@ export const getUserById = async (userId) => {
 };
 
 /**
- * Obtiene todos los logs de auditoría de un usuario específico.
+ * Obtiene los logs de auditoría de un usuario específico de forma paginada.
  * @param {number|string} userId - ID del usuario.
- * @returns {Promise<Array<object>>} Lista de logs de auditoría.
+ * @param {number} [page=1] - Número de página.
+ * @param {number} [limit=20] - Límite de registros por página.
+ * @returns {Promise<{logs: Array<object>, total: number, page: number, totalPages: number, hasMore: boolean}>}
  */
-export const getUserAuditLogs = async (userId) => {
-  return await AuditLog.findAll({
+export const getUserAuditLogs = async (userId, page = 1, limit = 20) => {
+  const offset = (page - 1) * limit;
+  const { count, rows } = await AuditLog.findAndCountAll({
     where: { userId },
-    order: [['createdAt', 'DESC']]
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+    raw: true
   });
+
+  return {
+    logs: rows,
+    total: count,
+    page: Number(page),
+    totalPages: Math.ceil(count / limit),
+    hasMore: page * limit < count
+  };
 };
+
