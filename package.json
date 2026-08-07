@@ -29,6 +29,7 @@
     "express-session": "^1.19.0",
     "hammerjs": "^2.0.8",
     "sequelize": "^6.37.8",
+    "sharp": "^0.33.5",
     "tedious": "^19.2.1",
     "uuid": "^13.0.0"
   },

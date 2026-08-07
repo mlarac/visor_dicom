@@ -103,3 +103,7 @@ NODE_ENV=production
    ```
 5. Accede desde tu navegador a `http://localhost:3000`.
 
+
+## PM2 
+
+1. ```pm2 start server.js --interpreter node --node-args="--env-file=.env" --name visor_dicom_prod ```

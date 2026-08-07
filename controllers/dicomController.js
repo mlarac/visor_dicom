@@ -2,6 +2,8 @@ import * as dicomService from '../services/dicomService.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { ZipArchive } from 'archiver';
+import { convertDicomToJpgBuffer } from '../utils/dicomConverter.js';
+
 
 
 /**
@@ -160,9 +162,71 @@ const downloadStudy = async (req, res) => {
   }
 };
 
+const downloadStudyJpg = async (req, res) => {
+  try {
+    const { studyId } = req.params;
+    const study = await dicomService.getStudyById(studyId);
+
+    if (!study) {
+      return res.status(404).send('Estudio no encontrado.');
+    }
+
+    const dirPath = path.resolve(study.directoryPath);
+
+    if (!fs.existsSync(dirPath)) {
+      console.error(`Directorio no encontrado: ${dirPath}`);
+      return res.status(404).send('El directorio físico del estudio no está disponible.');
+    }
+
+    const dicomFiles = getDicomFilesRecursive(dirPath, dirPath);
+
+    if (dicomFiles.length === 0) {
+      return res.status(404).send('No se encontraron archivos DICOM en el estudio.');
+    }
+
+    // Configurar cabeceras de respuesta para descarga de archivo ZIP con JPGs
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename=estudio_${studyId}_jpg.zip`);
+
+    const archive = new ZipArchive({ zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      console.error('Error durante la compresión del ZIP de JPGs:', err);
+      if (!res.headersSent) {
+        res.status(500).send('Error durante la descarga.');
+      }
+    });
+
+    archive.pipe(res);
+
+    // Convertir cada archivo DICOM a JPG y agregarlo al ZIP
+    for (let i = 0; i < dicomFiles.length; i++) {
+      const relPath = dicomFiles[i];
+      const fullPath = path.join(dirPath, relPath);
+      try {
+        const jpgBuffer = await convertDicomToJpgBuffer(fullPath);
+        const jpgFileName = relPath.replace(/\.dcm$/i, '.jpg');
+        archive.append(jpgBuffer, { name: jpgFileName });
+      } catch (err) {
+        console.error(`Error convirtiendo archivo ${fullPath} a JPG:`, err);
+      }
+    }
+
+    await archive.finalize();
+
+  } catch (error) {
+    console.error('Error en downloadStudyJpg:', error);
+    if (!res.headersSent) {
+      res.status(500).send('Error interno del servidor.');
+    }
+  }
+};
+
 export {
   serveDicom,
   viewDicom,
   listDicomFiles,
-  downloadStudy
+  downloadStudy,
+  downloadStudyJpg
 };
+
