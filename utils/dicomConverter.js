@@ -4,15 +4,16 @@ import sharp from 'sharp';
 
 /**
  * Decodificador en JS puro para JPEG Lossless (SOF 0xC3 / Transfer Syntaxes 1.2.840.10008.1.2.4.70 y 1.2.840.10008.1.2.4.57).
+ * Cumple con el estándar ISO 10918-1 / DICOM PS 3.5.
  */
-function decodeJpegLossless(buffer, targetBitsStored = 16) {
+function decodeJpegLossless(buffer) {
   let offset = 0;
   if (buffer[0] !== 0xff || buffer[1] !== 0xd8) {
     throw new Error('No es un archivo JPEG válido.');
   }
   offset += 2;
 
-  let precision = targetBitsStored || 16, rows = 0, cols = 0;
+  let precision = 16, rows = 0, cols = 0;
   const huffmanTables = [];
   let predictor = 1, pointTransform = 0;
   let scanStart = 0;
@@ -123,10 +124,7 @@ function decodeJpegLossless(buffer, targetBitsStored = 16) {
   if (!hTable) throw new Error('Tabla Huffman no encontrada para JPEG Lossless.');
 
   const output = new Uint16Array(rows * cols);
-  
-  // Utilizar bitsStored real del DICOM (ej. 14 o 12 bits) para la predicción inicial
-  const sampleBits = (targetBitsStored && targetBitsStored > 0) ? targetBitsStored : precision;
-  const initialPred = 1 << (sampleBits - 1);
+  const initialPred = 1 << (precision - 1); // ISO 10918-1 DPCM Initial Predictor
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -182,7 +180,6 @@ export const convertDicomToJpgBuffer = async (filePath) => {
 
   const photometricInterpretation = (dataSet.string('x00280004') || 'MONOCHROME2').trim().toUpperCase();
   const bitsAllocated = dataSet.uint16('x00280100') || 16;
-  const bitsStored = dataSet.uint16('x00280101') || bitsAllocated;
   const pixelRepresentation = dataSet.uint16('x00280103') || 0; // 0: Unsigned, 1: Signed
   const rescaleIntercept = parseFloat(dataSet.string('x00281052') || '0');
   const rescaleSlope = parseFloat(dataSet.string('x00281053') || '1');
@@ -199,10 +196,16 @@ export const convertDicomToJpgBuffer = async (filePath) => {
       } catch (err) {
         // Si sharp falla por formato de compresión como JPEG Lossless (SOF 0xC3)
         if (err.message.includes('0xc3') || err.message.includes('Unsupported JPEG process')) {
-          const res = decodeJpegLossless(fragBuf, bitsStored);
+          const res = decodeJpegLossless(fragBuf);
           const numPixels = res.rows * res.cols;
           
           let min = Infinity, max = -Infinity;
+          for (let i = 0; i < numPixels; i++) {
+            const v = res.output[i] * rescaleSlope + rescaleIntercept;
+            if (v < min) min = v;
+            if (v > max) max = v;
+          }
+
           const windowCenterStr = dataSet.string('x00281050');
           const windowWidthStr = dataSet.string('x00281051');
           let wc, ww;
@@ -210,12 +213,14 @@ export const convertDicomToJpgBuffer = async (filePath) => {
           if (windowCenterStr && windowWidthStr) {
             wc = parseFloat(windowCenterStr.split('\\')[0]);
             ww = parseFloat(windowWidthStr.split('\\')[0]);
-          } else {
-            for (let i = 0; i < numPixels; i++) {
-              const v = res.output[i] * rescaleSlope + rescaleIntercept;
-              if (v < min) min = v;
-              if (v > max) max = v;
+            const lower = wc - ww / 2;
+            const upper = wc + ww / 2;
+            // Si los valores de ventana del DICOM están fuera del rango real de píxeles, usar auto-windowing min/max
+            if (lower >= max || upper <= min || (upper - lower) <= 0) {
+              wc = (min + max) / 2;
+              ww = Math.max(max - min, 1);
             }
+          } else {
             wc = (min + max) / 2;
             ww = Math.max(max - min, 1);
           }
@@ -275,20 +280,27 @@ export const convertDicomToJpgBuffer = async (filePath) => {
     pixelArray = pixelRepresentation === 1 ? new Int16Array(bufferCopy) : new Uint16Array(bufferCopy);
   }
 
-  let wc, ww;
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < numPixels; i++) {
+    const val = pixelArray[i] * rescaleSlope + rescaleIntercept;
+    if (val < min) min = val;
+    if (val > max) max = val;
+  }
+
   const windowCenterStr = dataSet.string('x00281050');
   const windowWidthStr = dataSet.string('x00281051');
+  let wc, ww;
 
   if (windowCenterStr && windowWidthStr) {
     wc = parseFloat(windowCenterStr.split('\\')[0]);
     ww = parseFloat(windowWidthStr.split('\\')[0]);
-  } else {
-    let min = Infinity, max = -Infinity;
-    for (let i = 0; i < numPixels; i++) {
-      const val = pixelArray[i] * rescaleSlope + rescaleIntercept;
-      if (val < min) min = val;
-      if (val > max) max = val;
+    const lower = wc - ww / 2;
+    const upper = wc + ww / 2;
+    if (lower >= max || upper <= min || (upper - lower) <= 0) {
+      wc = (min + max) / 2;
+      ww = Math.max(max - min, 1);
     }
+  } else {
     wc = (min + max) / 2;
     ww = Math.max(max - min, 1);
   }

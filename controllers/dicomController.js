@@ -2,12 +2,13 @@ import * as dicomService from '../services/dicomService.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { ZipArchive } from 'archiver';
+import dicomParser from 'dicom-parser';
 import { convertDicomToJpgBuffer } from '../utils/dicomConverter.js';
 
 
 
 /**
- * Helper recursivo para buscar archivos .dcm en subcarpetas.
+ * Helper recursivo para buscar archivos DICOM válidos con datos de imagen en subcarpetas.
  */
 const getDicomFilesRecursive = (dir, baseDir) => {
   let results = [];
@@ -22,12 +23,30 @@ const getDicomFilesRecursive = (dir, baseDir) => {
     } else {
       const lowerName = file.toLowerCase();
       // Omitir manifiestos XML, zips, carpetas de sistema o archivos ocultos
-      if (lowerName === 'dicomdir' || lowerName.endsWith('.xml') || lowerName.endsWith('.zip') || lowerName.startsWith('.')) {
+      if (lowerName === 'dicomdir' || lowerName.endsWith('.xml') || lowerName.endsWith('.zip') || lowerName.endsWith('.json') || lowerName.startsWith('.')) {
         continue;
       }
-      let relativePath = path.relative(baseDir, filePath);
-      relativePath = relativePath.replace(/\\/g, '/');
-      results.push(relativePath);
+      
+      // Verificar que el archivo sea un DICOM válido con matriz de imagen (PixelData)
+      try {
+        const fileBuffer = fs.readFileSync(filePath);
+        if (fileBuffer.length < 132) continue;
+        const dataSet = dicomParser.parseDicom(fileBuffer);
+        const pixelDataElement = dataSet.elements.x7fe00010;
+        const rows = dataSet.uint16('x00280010');
+        const cols = dataSet.uint16('x00280011');
+        
+        if (!pixelDataElement || !rows || !cols || rows < 10 || cols < 10) {
+          continue;
+        }
+
+        let relativePath = path.relative(baseDir, filePath);
+        relativePath = relativePath.replace(/\\/g, '/');
+        results.push(relativePath);
+      } catch (err) {
+        // Omite silenciosamente archivos no DICOM o corruptos
+        continue;
+      }
     }
   }
   return results;
