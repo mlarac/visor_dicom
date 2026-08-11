@@ -1,5 +1,5 @@
 import express from 'express';
-import { serveDicom, viewDicom, listDicomFiles, downloadStudy } from '../controllers/dicomController.js';
+import { serveDicom, viewDicom, listDicomFiles, downloadStudy, downloadStudyJpg } from '../controllers/dicomController.js';
 import { isAuthenticated } from '../middlewares/authMiddleware.js';
 import auditMiddleware from '../middlewares/auditMiddleware.js';
 
@@ -13,5 +13,7 @@ router.get('/archivos/:studyId', auditMiddleware('Listar Archivos DICOM'), listD
 router.get('/archivos/:studyId/:filename', auditMiddleware('Lectura Archivo DICOM'), serveDicom);
 router.get('/descargar/:studyId', auditMiddleware('Descarga de Estudio Completo'), downloadStudy);
 router.get('/descargar-zip/:studyId', auditMiddleware('Descarga de Estudio Completo'), downloadStudy);
+router.get('/descargar-jpg/:studyId', auditMiddleware('Descarga de Estudio JPG'), downloadStudyJpg);
+
 
 export default router;

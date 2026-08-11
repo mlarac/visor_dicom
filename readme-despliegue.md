@@ -136,3 +136,4 @@ Si tus usuarios necesitan acceder desde otros equipos de la red:
    - Ejemplo: `http://192.168.1.100` (si usaste el puerto 80).
    - Ejemplo: `http://192.168.1.100:3000` (si usaste el puerto 3000).
 3. Deberías ver la pantalla de inicio de sesión de la aplicación Visor DICOM.
+

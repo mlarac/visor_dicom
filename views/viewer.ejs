@@ -61,7 +61,29 @@
     <div>
       <button id="btnWwwc" class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Ajustar Brillo/Contraste (WW/WC)"><i class="bi bi-brightness-half"></i></button>
       <button id="btnZoom" class="btn btn-sm btn-dark text-white border-secondary me-1" data-bs-toggle="tooltip" title="Zoom"><i class="bi bi-zoom-in"></i></button>
-      <button id="btnPan" class="btn btn-sm btn-dark text-white border-secondary" data-bs-toggle="tooltip" title="Mover"><i class="bi bi-arrows-move"></i></button>
+      <button id="btnPan" class="btn btn-sm btn-dark text-white border-secondary me-3" data-bs-toggle="tooltip" title="Mover"><i class="bi bi-arrows-move"></i></button>
+      
+      <button id="btnDownloadJpg" class="btn btn-sm btn-success text-white me-2" data-bs-toggle="tooltip" title="Descargar la imagen actual visualizada en formato JPG">
+        <i class="bi bi-filetype-jpg"></i> Descargar JPG
+      </button>
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Descargar Estudio Completo">
+          <i class="bi bi-download"></i> Descargar Todo
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <li>
+            <a class="dropdown-item small" href="/dicom/descargar/<%= studyId %>">
+              <i class="bi bi-file-earmark-zip me-2 text-primary"></i> DICOM (.zip)
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item small" href="/dicom/descargar-jpg/<%= studyId %>">
+              <i class="bi bi-filetype-jpg me-2 text-success"></i> JPG (.zip)
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -233,6 +255,27 @@
             document.getElementById('btnWwwc').addEventListener('click', () => setLeftClickTool('Wwwc'));
             document.getElementById('btnZoom').addEventListener('click', () => setLeftClickTool('Zoom'));
             document.getElementById('btnPan').addEventListener('click', () => setLeftClickTool('Pan'));
+
+            // Descargar la imagen visible actual en formato JPG
+            const btnDownloadJpg = document.getElementById('btnDownloadJpg');
+            if (btnDownloadJpg) {
+              btnDownloadJpg.addEventListener('click', () => {
+                const canvas = element.querySelector('canvas');
+                if (!canvas) {
+                  alert('No hay una imagen lista para descargar.');
+                  return;
+                }
+                const imageIndex = (stack && stack.currentImageIdIndex !== undefined) ? (stack.currentImageIdIndex + 1) : 1;
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `estudio_<%= studyId %>_imagen_${imageIndex}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              });
+            }
+
 
           }).catch(err => {
             throw err;
