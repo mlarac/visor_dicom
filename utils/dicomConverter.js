@@ -5,14 +5,14 @@ import sharp from 'sharp';
 /**
  * Decodificador en JS puro para JPEG Lossless (SOF 0xC3 / Transfer Syntaxes 1.2.840.10008.1.2.4.70 y 1.2.840.10008.1.2.4.57).
  */
-function decodeJpegLossless(buffer) {
+function decodeJpegLossless(buffer, targetBitsStored = 16) {
   let offset = 0;
   if (buffer[0] !== 0xff || buffer[1] !== 0xd8) {
     throw new Error('No es un archivo JPEG válido.');
   }
   offset += 2;
 
-  let precision = 16, rows = 0, cols = 0;
+  let precision = targetBitsStored || 16, rows = 0, cols = 0;
   const huffmanTables = [];
   let predictor = 1, pointTransform = 0;
   let scanStart = 0;
@@ -124,6 +124,10 @@ function decodeJpegLossless(buffer) {
 
   const output = new Uint16Array(rows * cols);
   
+  // Utilizar bitsStored real del DICOM (ej. 14 o 12 bits) para la predicción inicial
+  const sampleBits = (targetBitsStored && targetBitsStored > 0) ? targetBitsStored : precision;
+  const initialPred = 1 << (sampleBits - 1);
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const category = reader.decodeHuffman(hTable);
@@ -136,7 +140,7 @@ function decodeJpegLossless(buffer) {
 
       let pred = 0;
       if (c === 0 && r === 0) {
-        pred = 1 << (precision - 1);
+        pred = initialPred;
       } else if (c === 0) {
         pred = output[(r - 1) * cols];
       } else if (r === 0) {
@@ -178,6 +182,7 @@ export const convertDicomToJpgBuffer = async (filePath) => {
 
   const photometricInterpretation = (dataSet.string('x00280004') || 'MONOCHROME2').trim().toUpperCase();
   const bitsAllocated = dataSet.uint16('x00280100') || 16;
+  const bitsStored = dataSet.uint16('x00280101') || bitsAllocated;
   const pixelRepresentation = dataSet.uint16('x00280103') || 0; // 0: Unsigned, 1: Signed
   const rescaleIntercept = parseFloat(dataSet.string('x00281052') || '0');
   const rescaleSlope = parseFloat(dataSet.string('x00281053') || '1');
@@ -194,7 +199,7 @@ export const convertDicomToJpgBuffer = async (filePath) => {
       } catch (err) {
         // Si sharp falla por formato de compresión como JPEG Lossless (SOF 0xC3)
         if (err.message.includes('0xc3') || err.message.includes('Unsupported JPEG process')) {
-          const res = decodeJpegLossless(fragBuf);
+          const res = decodeJpegLossless(fragBuf, bitsStored);
           const numPixels = res.rows * res.cols;
           
           let min = Infinity, max = -Infinity;
