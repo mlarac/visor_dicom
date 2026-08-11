@@ -19,7 +19,12 @@ const getDicomFilesRecursive = (dir, baseDir) => {
     const stat = fs.statSync(filePath);
     if (stat && stat.isDirectory()) {
       results = results.concat(getDicomFilesRecursive(filePath, baseDir));
-    } else if (file.toLowerCase().endsWith('.dcm')) {
+    } else {
+      const lowerName = file.toLowerCase();
+      // Omitir manifiestos XML, zips, carpetas de sistema o archivos ocultos
+      if (lowerName === 'dicomdir' || lowerName.endsWith('.xml') || lowerName.endsWith('.zip') || lowerName.startsWith('.')) {
+        continue;
+      }
       let relativePath = path.relative(baseDir, filePath);
       relativePath = relativePath.replace(/\\/g, '/');
       results.push(relativePath);
@@ -205,7 +210,10 @@ const downloadStudyJpg = async (req, res) => {
       const fullPath = path.join(dirPath, relPath);
       try {
         const jpgBuffer = await convertDicomToJpgBuffer(fullPath);
-        const jpgFileName = relPath.replace(/\.dcm$/i, '.jpg');
+        let jpgFileName = relPath.replace(/\.(dcm|dicom|ima|img)$/i, '');
+        if (!jpgFileName.toLowerCase().endsWith('.jpg')) {
+          jpgFileName += '.jpg';
+        }
         archive.append(jpgBuffer, { name: jpgFileName });
       } catch (err) {
         console.error(`Error convirtiendo archivo ${fullPath} a JPG:`, err);
