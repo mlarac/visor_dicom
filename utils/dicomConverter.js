@@ -3,7 +3,7 @@ import dicomParser from 'dicom-parser';
 import sharp from 'sharp';
 
 /**
- * Decodificador básico en JS puro para JPEG Lossless (SOF 0xC3 / Transfer Syntaxes 1.2.840.10008.1.2.4.70 y 1.2.840.10008.1.2.4.57).
+ * Decodificador en JS puro para JPEG Lossless (SOF 0xC3 / Transfer Syntaxes 1.2.840.10008.1.2.4.70 y 1.2.840.10008.1.2.4.57).
  */
 function decodeJpegLossless(buffer) {
   let offset = 0;
@@ -85,8 +85,16 @@ function decodeJpegLossless(buffer) {
     }
     readBit() {
       if (this.bitsCount === 0) {
+        if (this.pos >= this.buf.length) return 0;
         let byte = this.buf[this.pos++];
-        if (byte === 0xff && this.buf[this.pos] === 0x00) this.pos++;
+        if (byte === 0xff) {
+          let nextByte = this.buf[this.pos];
+          if (nextByte === 0x00) {
+            this.pos++;
+          } else if (nextByte >= 0xd0 && nextByte <= 0xd7) {
+            this.pos++; // Ignorar marcadores de reinicio RST0-RST7
+          }
+        }
         this.bitBuf = byte;
         this.bitsCount = 8;
       }
@@ -106,7 +114,7 @@ function decodeJpegLossless(buffer) {
           if (table[i].length === len && table[i].code === code) return table[i].value;
         }
       }
-      throw new Error('Código Huffman no válido en el fragmento JPEG Lossless.');
+      return 0;
     }
   }
 
