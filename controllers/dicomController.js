@@ -5,10 +5,9 @@ import { ZipArchive } from 'archiver';
 import dicomParser from 'dicom-parser';
 import { convertDicomToJpgBuffer } from '../utils/dicomConverter.js';
 
-
-
 /**
- * Helper recursivo para buscar archivos DICOM válidos con datos de imagen en subcarpetas.
+ * Helper recursivo ultra rápido para buscar archivos DICOM válidos en subcarpetas.
+ * Lee únicamente los primeros 4 KB de encabezado de cada archivo para minimizar RAM y latencia I/O.
  */
 const getDicomFilesRecursive = (dir, baseDir) => {
   let results = [];
@@ -27,11 +26,24 @@ const getDicomFilesRecursive = (dir, baseDir) => {
         continue;
       }
       
-      // Verificar que el archivo sea un DICOM válido con matriz de imagen (PixelData)
+      // Lectura ultra rápida: leer solo los primeros 4 KB de encabezado
       try {
-        const fileBuffer = fs.readFileSync(filePath);
-        if (fileBuffer.length < 132) continue;
-        const dataSet = dicomParser.parseDicom(fileBuffer);
+        if (stat.size < 132) continue;
+
+        const fd = fs.openSync(filePath, 'r');
+        const headerBuf = Buffer.alloc(Math.min(4096, stat.size));
+        fs.readSync(fd, headerBuf, 0, headerBuf.length, 0);
+        fs.closeSync(fd);
+
+        let dataSet;
+        try {
+          dataSet = dicomParser.parseDicom(headerBuf, { untilTag: 'x7fe00010' });
+        } catch (parseErr) {
+          // Fallback a lectura completa si el encabezado excede 4 KB
+          const fileBuffer = fs.readFileSync(filePath);
+          dataSet = dicomParser.parseDicom(fileBuffer);
+        }
+
         const pixelDataElement = dataSet.elements.x7fe00010;
         const rows = dataSet.uint16('x00280010');
         const cols = dataSet.uint16('x00280011');
@@ -160,8 +172,8 @@ const downloadStudy = async (req, res) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=estudio_${studyId}.zip`);
 
-    // Crear el archivador con archiver v8.0.0
-    const archive = new ZipArchive({ zlib: { level: 9 } });
+    // Crear el archivador con archiver v8.0.0 (Fast stream level 4)
+    const archive = new ZipArchive({ zlib: { level: 4 } });
 
     archive.on('error', (err) => {
       console.error('Error durante la compresión del ZIP:', err);
@@ -212,7 +224,7 @@ const downloadStudyJpg = async (req, res) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=estudio_${studyId}_jpg.zip`);
 
-    const archive = new ZipArchive({ zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 4 } });
 
     archive.on('error', (err) => {
       console.error('Error durante la compresión del ZIP de JPGs:', err);
@@ -223,19 +235,31 @@ const downloadStudyJpg = async (req, res) => {
 
     archive.pipe(res);
 
-    // Convertir cada archivo DICOM a JPG y agregarlo al ZIP
-    for (let i = 0; i < dicomFiles.length; i++) {
-      const relPath = dicomFiles[i];
-      const fullPath = path.join(dirPath, relPath);
-      try {
-        const jpgBuffer = await convertDicomToJpgBuffer(fullPath);
-        let jpgFileName = relPath.replace(/\.(dcm|dicom|ima|img)$/i, '');
-        if (!jpgFileName.toLowerCase().endsWith('.jpg')) {
-          jpgFileName += '.jpg';
+    // Convertir archivos DICOM a JPG en paralelo (lotes concurrentes de 4 a 8 procesamientos)
+    const CONCURRENCY_LIMIT = 4;
+    for (let i = 0; i < dicomFiles.length; i += CONCURRENCY_LIMIT) {
+      const chunk = dicomFiles.slice(i, i + CONCURRENCY_LIMIT);
+      const convertedChunk = await Promise.all(
+        chunk.map(async (relPath) => {
+          const fullPath = path.join(dirPath, relPath);
+          try {
+            const jpgBuffer = await convertDicomToJpgBuffer(fullPath);
+            let jpgFileName = relPath.replace(/\.(dcm|dicom|ima|img)$/i, '');
+            if (!jpgFileName.toLowerCase().endsWith('.jpg')) {
+              jpgFileName += '.jpg';
+            }
+            return { jpgBuffer, jpgFileName };
+          } catch (err) {
+            console.error(`Error convirtiendo archivo ${fullPath} a JPG:`, err);
+            return null;
+          }
+        })
+      );
+
+      for (const item of convertedChunk) {
+        if (item && item.jpgBuffer) {
+          archive.append(item.jpgBuffer, { name: item.jpgFileName });
         }
-        archive.append(jpgBuffer, { name: jpgFileName });
-      } catch (err) {
-        console.error(`Error convirtiendo archivo ${fullPath} a JPG:`, err);
       }
     }
 
@@ -256,4 +280,3 @@ export {
   downloadStudy,
   downloadStudyJpg
 };
-
