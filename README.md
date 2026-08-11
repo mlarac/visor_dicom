@@ -37,6 +37,20 @@ La aplicación está construida sobre el patrón de diseño **MVC (Modelo-Vista-
   - `cornerstone-wado-image-loader`: Cargador de imágenes compatible con el estándar DICOM P10.
   - `dicom-parser`: Para la lectura de metadatos del estándar DICOM.
 
+## Exportación y Estándares de Imagen Médica
+
+La aplicación incluye un motor propio de procesamiento y exportación de imágenes médicas desarrollado sobre Node.js y Sharp que cumple estrictamente con las normativas internacionales de radiología digital:
+
+### Estándares Soportados
+- **ISO/IEC 10918-1 (ITU-T T.81)**: Estándar internacional para la codificación y compresión de imágenes. Soporta decodificación de **JPEG Lossless (Process 14 / SOF3 `0xC3`)**, asegurando que no se pierda información diagnóstica ni nitidez visual bit a bit.
+- **DICOM PS 3.5 (Data Structures and Encoding)**: Especificación NEMA para estructuras de datos médicos. Soporta de forma nativa la sintaxis de transferencia **`1.2.840.10008.1.2.4.70`** (*JPEG Lossless, Non-Hierarchical, First-Order Prediction*), el estándar predominante en sistemas PACS hospitalarios (Rayos X, Tomografía, Resonancia y Ecografía).
+- **Procesamiento VOI LUT & Windowing**: Aplica dinámicamente transformaciones de ventana (*Window Center* / *Window Width*) e interpolaciones *Rescale Intercept/Slope* para renderizar la escala de grises médica con contraste equilibrado.
+
+### Opciones de Exportación
+- **Estudio Completo DICOM (.zip)**: Descarga un paquete comprimido conteniendo todos los archivos originales del estudio (`.dcm`) respetando su jerarquía física.
+- **Estudio Completo JPG (.zip)**: Transforma automáticamente todas las imágenes DICOM válidas de la serie a formato JPEG normalizado de alta calidad (calidad 90), agrupándolas en un ZIP listo para su revisión en cualquier equipo.
+- **Captura de Imagen Actual JPG**: Permite exportar directamente la imagen o corte seleccionado en el visor Cornerstone en resolución completa con las herramientas activas de brillo/contraste aplicadas.
+
 ## Variables de Entorno
 
 Crea un archivo `.env` en la raíz del proyecto basándote en el archivo de ejemplo `.env.example`:
