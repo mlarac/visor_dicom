@@ -1,65 +1,72 @@
 import * as dicomService from '../services/dicomService.js';
 import path from 'node:path';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { ZipArchive } from 'archiver';
 import dicomParser from 'dicom-parser';
 import { convertDicomToJpgBuffer } from '../utils/dicomConverter.js';
 
 /**
- * Helper recursivo ultra rápido para buscar archivos DICOM válidos en subcarpetas.
- * Lee únicamente los primeros 4 KB de encabezado de cada archivo para minimizar RAM y latencia I/O.
+ * Helper recursivo asíncrono no bloqueante para buscar archivos DICOM válidos en subcarpetas.
+ * Lee de forma asíncrona únicamente los primeros 4 KB de encabezado sin congelar el Event Loop de Node.js.
  */
-const getDicomFilesRecursive = (dir, baseDir) => {
+const getDicomFilesRecursive = async (dir, baseDir) => {
   let results = [];
-  if (!fs.existsSync(dir)) return results;
+  if (!existsSync(dir)) return results;
 
-  const list = fs.readdirSync(dir);
-  for (const file of list) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(getDicomFilesRecursive(filePath, baseDir));
-    } else {
-      const lowerName = file.toLowerCase();
-      // Omitir manifiestos XML, zips, carpetas de sistema o archivos ocultos
-      if (lowerName === 'dicomdir' || lowerName.endsWith('.xml') || lowerName.endsWith('.zip') || lowerName.endsWith('.json') || lowerName.startsWith('.')) {
-        continue;
-      }
-      
-      // Lectura ultra rápida: leer solo los primeros 4 KB de encabezado
-      try {
-        if (stat.size < 132) continue;
+  try {
+    const list = await fs.readdir(dir);
+    for (const file of list) {
+      const filePath = path.join(dir, file);
+      const stat = await fs.stat(filePath);
 
-        const fd = fs.openSync(filePath, 'r');
-        const headerBuf = Buffer.alloc(Math.min(4096, stat.size));
-        fs.readSync(fd, headerBuf, 0, headerBuf.length, 0);
-        fs.closeSync(fd);
-
-        let dataSet;
-        try {
-          dataSet = dicomParser.parseDicom(headerBuf, { untilTag: 'x7fe00010' });
-        } catch (parseErr) {
-          // Fallback a lectura completa si el encabezado excede 4 KB
-          const fileBuffer = fs.readFileSync(filePath);
-          dataSet = dicomParser.parseDicom(fileBuffer);
-        }
-
-        const pixelDataElement = dataSet.elements.x7fe00010;
-        const rows = dataSet.uint16('x00280010');
-        const cols = dataSet.uint16('x00280011');
-        
-        if (!pixelDataElement || !rows || !cols || rows < 10 || cols < 10) {
+      if (stat && stat.isDirectory()) {
+        const subResults = await getDicomFilesRecursive(filePath, baseDir);
+        results = results.concat(subResults);
+      } else {
+        const lowerName = file.toLowerCase();
+        // Omitir manifiestos XML, zips, carpetas de sistema o archivos ocultos
+        if (lowerName === 'dicomdir' || lowerName.endsWith('.xml') || lowerName.endsWith('.zip') || lowerName.endsWith('.json') || lowerName.startsWith('.')) {
           continue;
         }
+        
+        // Lectura asíncrona de los primeros 4 KB del encabezado
+        try {
+          if (stat.size < 132) continue;
 
-        let relativePath = path.relative(baseDir, filePath);
-        relativePath = relativePath.replace(/\\/g, '/');
-        results.push(relativePath);
-      } catch (err) {
-        // Omite silenciosamente archivos no DICOM o corruptos
-        continue;
+          const handle = await fs.open(filePath, 'r');
+          const headerBuf = Buffer.alloc(Math.min(4096, stat.size));
+          await handle.read(headerBuf, 0, headerBuf.length, 0);
+          await handle.close();
+
+          let dataSet;
+          try {
+            dataSet = dicomParser.parseDicom(headerBuf, { untilTag: 'x7fe00010' });
+          } catch (parseErr) {
+            // Fallback asíncrono si el encabezado supera 4 KB
+            const fileBuffer = await fs.readFile(filePath);
+            dataSet = dicomParser.parseDicom(fileBuffer);
+          }
+
+          const pixelDataElement = dataSet.elements.x7fe00010;
+          const rows = dataSet.uint16('x00280010');
+          const cols = dataSet.uint16('x00280011');
+          
+          if (!pixelDataElement || !rows || !cols || rows < 10 || cols < 10) {
+            continue;
+          }
+
+          let relativePath = path.relative(baseDir, filePath);
+          relativePath = relativePath.replace(/\\/g, '/');
+          results.push(relativePath);
+        } catch (err) {
+          // Omite silenciosamente archivos no DICOM o corruptos
+          continue;
+        }
       }
     }
+  } catch (err) {
+    return results;
   }
   return results;
 };
@@ -78,11 +85,11 @@ const listDicomFiles = async (req, res) => {
 
     const dirPath = path.resolve(study.directoryPath);
 
-    if (!fs.existsSync(dirPath)) {
+    if (!existsSync(dirPath)) {
       return res.status(404).json({ error: 'El directorio físico no está disponible.' });
     }
 
-    const dicomFiles = getDicomFilesRecursive(dirPath, dirPath);
+    const dicomFiles = await getDicomFilesRecursive(dirPath, dirPath);
     
     // Ordenar los archivos (por nombre de archivo, idealmente numérico si tienen un patrón)
     dicomFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -108,7 +115,7 @@ const serveDicom = async (req, res) => {
     // Comprobamos la existencia física del archivo dentro del directorio
     const dicomFilePath = path.resolve(study.directoryPath, filename);
     
-    if (!fs.existsSync(dicomFilePath)) {
+    if (!existsSync(dicomFilePath)) {
       console.error(`Archivo físico no encontrado: ${dicomFilePath}`);
       return res.status(404).send('El archivo físico del DICOM no está disponible.');
     }
@@ -163,7 +170,7 @@ const downloadStudy = async (req, res) => {
 
     const dirPath = path.resolve(study.directoryPath);
 
-    if (!fs.existsSync(dirPath)) {
+    if (!existsSync(dirPath)) {
       console.error(`Directorio no encontrado: ${dirPath}`);
       return res.status(404).send('El directorio físico del estudio no está disponible.');
     }
@@ -209,12 +216,12 @@ const downloadStudyJpg = async (req, res) => {
 
     const dirPath = path.resolve(study.directoryPath);
 
-    if (!fs.existsSync(dirPath)) {
+    if (!existsSync(dirPath)) {
       console.error(`Directorio no encontrado: ${dirPath}`);
       return res.status(404).send('El directorio físico del estudio no está disponible.');
     }
 
-    const dicomFiles = getDicomFilesRecursive(dirPath, dirPath);
+    const dicomFiles = await getDicomFilesRecursive(dirPath, dirPath);
 
     if (dicomFiles.length === 0) {
       return res.status(404).send('No se encontraron archivos DICOM en el estudio.');

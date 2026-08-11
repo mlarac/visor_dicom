@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import dicomParser from 'dicom-parser';
 import sharp from 'sharp';
 
@@ -164,7 +164,7 @@ function decodeJpegLossless(buffer) {
  * @returns {Promise<Buffer>} Buffer del archivo JPG resultante.
  */
 export const convertDicomToJpgBuffer = async (filePath) => {
-  const fileBuffer = fs.readFileSync(filePath);
+  const fileBuffer = await fs.readFile(filePath);
   const dataSet = dicomParser.parseDicom(fileBuffer);
 
   const pixelDataElement = dataSet.elements.x7fe00010;
