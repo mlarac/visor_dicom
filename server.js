@@ -1,8 +1,8 @@
 import express from 'express';
 import session from 'express-session';
 import ConnectSessionSequelize from 'connect-session-sequelize';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import compression from 'compression';
 
@@ -15,6 +15,8 @@ import { sequelize } from './models/index.js';
 import routes from './routes/index.js';
 
 const app = express();
+app.disable('x-powered-by');
+
 const PORT = process.env.PORT || 3000;
 
 // Configuración de plantillas EJS
@@ -64,11 +66,12 @@ app.use((req, res, next) => {
 app.use('/', routes);
 
 // Sincronizar DB e iniciar servidor
-sequelize.sync().then(() => {
+try {
+  await sequelize.sync();
   console.log('Base de datos conectada y sincronizada (Modelos y Sesiones).');
   app.listen(PORT, () => {
     console.log(`Servidor Visor DICOM corriendo en http://localhost:${PORT}`);
   });
-}).catch(err => {
+} catch (err) {
   console.error('Error al iniciar la DB:', err);
-});
+}
