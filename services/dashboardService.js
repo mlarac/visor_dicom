@@ -1,4 +1,4 @@
-import { AuditLog, Study, Patient } from '../models/index.js';
+import { AuditLog, Study, Patient, Series } from '../models/index.js';
 import { Op } from 'sequelize';
 
 /**
@@ -34,7 +34,7 @@ export const getDashboardData = async (userId, searchQuery, clientIp) => {
   if (uniqueStudyIds.length > 0) {
     const studies = await Study.findAll({
       where: { id: { [Op.in]: uniqueStudyIds } },
-      include: [{ model: Patient }]
+      include: [{ model: Patient }, { model: Series }]
     });
 
     // Mantener el orden reciente
@@ -63,10 +63,10 @@ export const getDashboardData = async (userId, searchQuery, clientIp) => {
       ]
     };
 
-    // Buscar pacientes con filtro e incluir sus estudios
+    // Buscar pacientes con filtro e incluir sus estudios y series
     patients = await Patient.findAll({
       where: whereClause,
-      include: [Study],
+      include: [{ model: Study, include: [{ model: Series }] }],
       order: [['fullName', 'ASC']],
       limit: 100 // Límite por seguridad
     });

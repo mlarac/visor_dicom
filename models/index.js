@@ -3,12 +3,17 @@ import sequelize from '../config/database.js';
 import User from './User.js';
 import Patient from './Patient.js';
 import Study from './Study.js';
+import Series from './Series.js';
 import AuditLog from './AuditLog.js';
 
 // Definir asociaciones
 // Un paciente tiene muchos estudios (1:N)
 Patient.hasMany(Study, { foreignKey: 'PatientId' });
 Study.belongsTo(Patient, { foreignKey: 'PatientId' });
+
+// Un estudio tiene muchas series (1:N)
+Study.hasMany(Series, { foreignKey: 'studyId' });
+Series.belongsTo(Study, { foreignKey: 'studyId' });
 
 // Un usuario genera muchos logs de auditoría (1:N)
 User.hasMany(AuditLog, { foreignKey: 'userId' });
@@ -22,5 +27,6 @@ export {
   User,
   Patient,
   Study,
+  Series,
   AuditLog
 };

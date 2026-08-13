@@ -10,7 +10,7 @@
     body {
       background-color: #000;
       color: #fff;
-      overflow: hidden; /* Evita scrolls cuando el canvas es gigante */
+      overflow: hidden;
     }
     .top-bar {
       background-color: rgba(30, 30, 30, 0.9);
@@ -19,14 +19,28 @@
     #mainContainer {
       display: flex;
       width: 100vw;
-      height: calc(100vh - 56px); /* Resta el top-bar */
+      height: calc(100vh - 56px);
     }
     .sidebar {
-      width: 250px;
+      width: 280px;
+      min-width: 280px;
       background-color: #1a1a1a;
       border-right: 1px solid #333;
       overflow-y: auto;
-      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-section {
+      padding: 0.75rem;
+    }
+    .sidebar-section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
     }
     #dicomImage {
       flex-grow: 1;
@@ -36,16 +50,85 @@
       background-color: #111;
       position: relative;
     }
+    /* Series cards */
+    .series-card {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .series-card:hover {
+      background: #2a2a2a;
+      border-color: #555;
+    }
+    .series-card.active {
+      background: linear-gradient(135deg, #1a3a5c, #1a2a40);
+      border-color: #0d6efd;
+      box-shadow: 0 0 8px rgba(13, 110, 253, 0.3);
+    }
+    .series-card .series-number {
+      font-size: 0.7rem;
+      color: #6c757d;
+    }
+    .series-card .series-body-part {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #e0e0e0;
+    }
+    .series-card .series-modality-badge {
+      font-size: 0.65rem;
+      padding: 0.15em 0.5em;
+    }
+    .series-card .series-desc {
+      font-size: 0.7rem;
+      color: #999;
+      margin-top: 2px;
+    }
+    /* Thumbnails */
     .thumbnail-box {
       width: 100%;
-      height: 150px;
+      height: 130px;
       background-color: #000;
       border: 1px solid #444;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       cursor: pointer;
+      border-radius: 4px;
+      transition: border-color 0.2s;
     }
     .thumbnail-box:hover {
       border-color: #0d6efd;
+    }
+    .thumbnail-box.active-thumb {
+      border-color: #0d6efd;
+      box-shadow: 0 0 6px rgba(13, 110, 253, 0.4);
+    }
+    /* Metadata panel */
+    #seriesMetadata {
+      font-size: 0.78rem;
+    }
+    #seriesMetadata .meta-label {
+      color: #888;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    #seriesMetadata .meta-value {
+      color: #ddd;
+      font-weight: 500;
+    }
+    /* Scrollable sections */
+    #seriesListContainer {
+      max-height: 40%;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    #thumbnailSection {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
     }
   </style>
 </head>
@@ -89,19 +172,37 @@
 
   <div id="mainContainer">
     <div class="sidebar">
-      <h6 class="text-light border-bottom border-secondary pb-2 mb-3">Metadatos</h6>
-      <div id="dicomMetadata" class="mb-4 text-secondary small">
-        <p>Cargando información...</p>
+      <!-- Metadatos de la serie activa -->
+      <div class="sidebar-section" id="metadataSection">
+        <div class="sidebar-section-title"><i class="bi bi-info-circle me-1"></i> Metadatos</div>
+        <div id="dicomMetadata" class="text-secondary small">
+          <p>Cargando información...</p>
+        </div>
+        <div id="seriesMetadata"></div>
       </div>
-      
-      <h6 class="text-light border-bottom border-secondary pb-2 mb-3">Series / Imágenes (<span id="imageCount">0</span>)</h6>
-      <div id="thumbnailContainer">
-        <!-- Thumbnail de la serie -->
+
+      <!-- Lista de Series -->
+      <div id="seriesListContainer" class="sidebar-section">
+        <div class="sidebar-section-title">
+          <i class="bi bi-collection me-1"></i> Series (<span id="seriesCount">0</span>)
+        </div>
+        <div id="seriesListBody">
+          <!-- Series cards dinámicas -->
+        </div>
+      </div>
+
+      <!-- Thumbnails de la serie seleccionada -->
+      <div id="thumbnailSection" class="sidebar-section">
+        <div class="sidebar-section-title">
+          <i class="bi bi-images me-1"></i> Imágenes (<span id="imageCount">0</span>)
+        </div>
+        <div id="thumbnailContainer">
+          <!-- Thumbnails dinámicos -->
+        </div>
       </div>
     </div>
 
     <div id="dicomImage" oncontextmenu="return false" unselectable="on" onselectstart="return false;" onmousedown="return false;">
-      <!-- Aquí cornerstone inyectará el canvas -->
       <div class="text-secondary text-center" id="loaderInfo">
         <div class="spinner-border text-light mb-2" role="status"></div>
         <p>Cargando imágenes de la serie...</p>
@@ -115,7 +216,6 @@
   <script src="/vendor/cornerstone-tools/dist/cornerstoneTools.js"></script>
   <script src="/vendor/dicom-parser/dist/dicomParser.js"></script>
   <script src="/vendor/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
-  <!-- Hammer.js (Requerido por cornerstoneTools v3+) -->
   <script src="/vendor/hammerjs/hammer.min.js"></script>
 
   <script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -150,152 +250,281 @@
       const element = document.getElementById('dicomImage');
       cornerstone.enable(element);
 
-      // Limpiar contenido de "cargando"
-      
-      fetch('/dicom/archivos/<%= studyId %>')
-        .then(response => response.json())
-        .then(data => {
-          if (!data.files || data.files.length === 0) {
-            throw new Error('No se encontraron imágenes en el directorio.');
+      // Estado global del visor
+      let currentStack = { currentImageIdIndex: 0, imageIds: [] };
+      let toolsInitialized = false;
+      let activeThumbnails = [];
+
+      // Datos de series inyectados desde EJS
+      const serverSeries = <%- JSON.stringify(series || []) %>;
+
+      /**
+       * Inicializa las herramientas de Cornerstone (solo una vez)
+       */
+      const initTools = () => {
+        if (toolsInitialized) return;
+        cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+        cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
+        cornerstoneTools.addTool(cornerstoneTools.PanTool);
+        cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+
+        cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
+        cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
+        cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });
+        cornerstoneTools.setToolActive('StackScrollMouseWheel', { });
+        toolsInitialized = true;
+      };
+
+      const setLeftClickTool = (toolName) => {
+        cornerstoneTools.setToolPassive('Wwwc');
+        cornerstoneTools.setToolPassive('Zoom');
+        cornerstoneTools.setToolPassive('Pan');
+        cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
+        cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });
+        cornerstoneTools.setToolActive(toolName, { mouseButtonMask: 1 });
+      };
+
+      document.getElementById('btnWwwc').addEventListener('click', () => setLeftClickTool('Wwwc'));
+      document.getElementById('btnZoom').addEventListener('click', () => setLeftClickTool('Zoom'));
+      document.getElementById('btnPan').addEventListener('click', () => setLeftClickTool('Pan'));
+
+      // Descargar JPG de la imagen actual
+      const btnDownloadJpg = document.getElementById('btnDownloadJpg');
+      if (btnDownloadJpg) {
+        btnDownloadJpg.addEventListener('click', () => {
+          const canvas = element.querySelector('canvas');
+          if (!canvas) {
+            alert('No hay una imagen lista para descargar.');
+            return;
           }
+          const imageIndex = (currentStack && currentStack.currentImageIdIndex !== undefined) ? (currentStack.currentImageIdIndex + 1) : 1;
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = `estudio_<%= studyId %>_imagen_${imageIndex}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      }
 
-          document.getElementById('imageCount').textContent = data.files.length;
+      /**
+       * Limpia los thumbnails existentes, deshabilitando cornerstone de cada uno
+       */
+      const clearThumbnails = () => {
+        activeThumbnails.forEach(el => {
+          try { cornerstone.disable(el); } catch (e) { /* ya deshabilitado */ }
+        });
+        activeThumbnails = [];
+        document.getElementById('thumbnailContainer').innerHTML = '';
+      };
 
-          // Generar los imageIds
-          const imageIds = data.files.map(filename => 'wadouri:/dicom/archivos/<%= studyId %>/' + encodeURIComponent(filename));
+      /**
+       * Muestra los metadatos de la serie activa desde la BD
+       */
+      const showSeriesMetadata = (seriesInfo) => {
+        const metaDiv = document.getElementById('seriesMetadata');
+        if (!seriesInfo) {
+          metaDiv.innerHTML = '';
+          return;
+        }
+        const entries = [
+          { label: 'Parte del Cuerpo', value: seriesInfo.bodyPart, icon: 'bi-person-standing' },
+          { label: 'Modalidad', value: seriesInfo.modality, icon: 'bi-display' },
+          { label: 'Procedimiento', value: seriesInfo.procedureName, icon: 'bi-clipboard2-pulse' },
+          { label: 'Descripción', value: seriesInfo.description, icon: 'bi-card-text' },
+          { label: 'Contraste', value: seriesInfo.contrast, icon: 'bi-droplet-half' },
+          { label: 'Equipo', value: seriesInfo.machine, icon: 'bi-cpu' },
+          { label: 'Vista', value: seriesInfo.viewPosition, icon: 'bi-aspect-ratio' }
+        ].filter(e => e.value && String(e.value).trim() !== '');
 
-          // Cargar la primera imagen para extraer metadatos y mostrarla
-          cornerstone.loadImage(imageIds[0]).then((image) => {
-            const loaderInfo = document.getElementById('loaderInfo');
-            if (loaderInfo) loaderInfo.style.display = 'none';
+        if (entries.length === 0) {
+          metaDiv.innerHTML = '';
+          return;
+        }
 
-            // Mostrar metadatos
-            const patientName = image.data.string('x00100010') || 'Desconocido';
-            const patientId = image.data.string('x00100020') || 'N/A';
-            const studyDate = image.data.string('x00080020') || 'Desconocida';
-            const modality = image.data.string('x00080060') || 'N/A';
-            
-            document.getElementById('dicomMetadata').innerHTML = `
-              <p class="mb-1"><strong>Paciente:</strong> <br> ${patientName}</p>
-              <p class="mb-1"><strong>ID Paciente:</strong> ${patientId}</p>
-              <p class="mb-1"><strong>Fecha Estudio:</strong> ${studyDate}</p>
-              <p class="mb-1"><strong>Modalidad:</strong> ${modality}</p>
-            `;
+        metaDiv.innerHTML = entries.map(e => `
+          <div class="mb-1">
+            <span class="meta-label"><i class="bi ${e.icon} me-1"></i>${e.label}</span><br>
+            <span class="meta-value">${e.value}</span>
+          </div>
+        `).join('');
+      };
 
-            // Mostrar imagen en el visor principal
-            cornerstone.displayImage(element, image);
+      /**
+       * Carga las imágenes de una serie (o del estudio completo en modo legacy)
+       */
+      const loadImagesFromUrl = (filesUrl, imageBaseUrl, seriesInfo) => {
+        const loaderInfo = document.getElementById('loaderInfo');
+        if (loaderInfo) {
+          loaderInfo.style.display = '';
+          loaderInfo.querySelector('p').textContent = 'Cargando imágenes...';
+        }
 
-            // Crear miniaturas (thumbnails) para cada imagen
-            imageIds.forEach((id, index) => {
-              const thumbWrapper = document.createElement('div');
-              thumbWrapper.style.position = 'relative';
-              
-              const thumbDiv = document.createElement('div');
-              thumbDiv.className = 'thumbnail-box';
-              thumbDiv.dataset.index = index;
-              
-              const label = document.createElement('span');
-              label.textContent = (index + 1).toString();
-              label.className = 'badge bg-dark position-absolute bottom-0 end-0 m-1';
-              
-              thumbWrapper.appendChild(thumbDiv);
-              thumbWrapper.appendChild(label);
-              document.getElementById('thumbnailContainer').appendChild(thumbWrapper);
-              
-              cornerstone.enable(thumbDiv);
-              cornerstone.loadImage(id).then(thumbImage => {
-                cornerstone.displayImage(thumbDiv, thumbImage);
-              });
+        clearThumbnails();
+        showSeriesMetadata(seriesInfo);
 
-              // Al hacer clic, cambiar la imagen principal
-              thumbDiv.addEventListener('click', () => {
-                cornerstone.loadImage(id).then(newImage => {
-                  cornerstone.displayImage(element, newImage);
-                  stack.currentImageIdIndex = index;
-                });
-              });
-            });
-
-            // Configurar Stack
-            const stack = {
-              currentImageIdIndex: 0,
-              imageIds: imageIds
-            };
-            cornerstoneTools.addStackStateManager(element, ['stack']);
-            cornerstoneTools.addToolState(element, 'stack', stack);
-
-            // Añadir herramientas al visor
-            cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-            cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
-            cornerstoneTools.addTool(cornerstoneTools.PanTool);
-            cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
-
-            // Activar por defecto Wwwc en clic izquierdo, y la rueda del ratón
-            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
-            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Click derecho como atajo
-            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });  // Click medio como atajo
-            cornerstoneTools.setToolActive('StackScrollMouseWheel', { });
-
-            // Lógica para cambiar la herramienta del clic izquierdo desde la UI
-            const setLeftClickTool = (toolName) => {
-              // Poner todas en pasivo para limpiar el click izquierdo
-              cornerstoneTools.setToolPassive('Wwwc');
-              cornerstoneTools.setToolPassive('Zoom');
-              cornerstoneTools.setToolPassive('Pan');
-              
-              // Reactivar atajos secundarios de forma segura
-              cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
-              cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });
-
-              // Asignar herramienta seleccionada al clic izquierdo
-              cornerstoneTools.setToolActive(toolName, { mouseButtonMask: 1 });
-            };
-
-            // Vincular los botones de la barra superior
-            document.getElementById('btnWwwc').addEventListener('click', () => setLeftClickTool('Wwwc'));
-            document.getElementById('btnZoom').addEventListener('click', () => setLeftClickTool('Zoom'));
-            document.getElementById('btnPan').addEventListener('click', () => setLeftClickTool('Pan'));
-
-            // Descargar la imagen visible actual en formato JPG
-            const btnDownloadJpg = document.getElementById('btnDownloadJpg');
-            if (btnDownloadJpg) {
-              btnDownloadJpg.addEventListener('click', () => {
-                const canvas = element.querySelector('canvas');
-                if (!canvas) {
-                  alert('No hay una imagen lista para descargar.');
-                  return;
-                }
-                const imageIndex = (stack && stack.currentImageIdIndex !== undefined) ? (stack.currentImageIdIndex + 1) : 1;
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = `estudio_<%= studyId %>_imagen_${imageIndex}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              });
+        fetch(filesUrl)
+          .then(response => response.json())
+          .then(data => {
+            if (!data.files || data.files.length === 0) {
+              throw new Error('No se encontraron imágenes en esta serie.');
             }
 
+            document.getElementById('imageCount').textContent = data.files.length;
 
-          }).catch(err => {
-            throw err;
+            const imageIds = data.files.map(filename => 'wadouri:' + imageBaseUrl + '/' + encodeURIComponent(filename));
+
+            cornerstone.loadImage(imageIds[0]).then((image) => {
+              if (loaderInfo) loaderInfo.style.display = 'none';
+
+              // Metadatos DICOM del header
+              const patientName = image.data.string('x00100010') || 'Desconocido';
+              const patientId = image.data.string('x00100020') || 'N/A';
+              const studyDate = image.data.string('x00080020') || 'Desconocida';
+              const modality = image.data.string('x00080060') || 'N/A';
+              
+              document.getElementById('dicomMetadata').innerHTML = `
+                <p class="mb-1"><strong>Paciente:</strong> <br> ${patientName}</p>
+                <p class="mb-1"><strong>ID Paciente:</strong> ${patientId}</p>
+                <p class="mb-1"><strong>Fecha Estudio:</strong> ${studyDate}</p>
+                <p class="mb-1"><strong>Modalidad:</strong> ${modality}</p>
+              `;
+
+              cornerstone.displayImage(element, image);
+
+              // Crear thumbnails
+              imageIds.forEach((id, index) => {
+                const thumbWrapper = document.createElement('div');
+                thumbWrapper.style.position = 'relative';
+                
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'thumbnail-box' + (index === 0 ? ' active-thumb' : '');
+                thumbDiv.dataset.index = index;
+                
+                const label = document.createElement('span');
+                label.textContent = (index + 1).toString();
+                label.className = 'badge bg-dark position-absolute bottom-0 end-0 m-1';
+                
+                thumbWrapper.appendChild(thumbDiv);
+                thumbWrapper.appendChild(label);
+                document.getElementById('thumbnailContainer').appendChild(thumbWrapper);
+                
+                cornerstone.enable(thumbDiv);
+                activeThumbnails.push(thumbDiv);
+
+                cornerstone.loadImage(id).then(thumbImage => {
+                  cornerstone.displayImage(thumbDiv, thumbImage);
+                });
+
+                thumbDiv.addEventListener('click', () => {
+                  document.querySelectorAll('.thumbnail-box').forEach(tb => tb.classList.remove('active-thumb'));
+                  thumbDiv.classList.add('active-thumb');
+
+                  cornerstone.loadImage(id).then(newImage => {
+                    cornerstone.displayImage(element, newImage);
+                    currentStack.currentImageIdIndex = index;
+                  });
+                });
+              });
+
+              // Configurar Stack
+              currentStack = {
+                currentImageIdIndex: 0,
+                imageIds: imageIds
+              };
+
+              try {
+                cornerstoneTools.clearToolState(element, 'stack');
+              } catch(e) { /* primera vez */ }
+
+              cornerstoneTools.addStackStateManager(element, ['stack']);
+              cornerstoneTools.addToolState(element, 'stack', currentStack);
+
+              initTools();
+
+            }).catch(err => {
+              throw err;
+            });
+          })
+          .catch(err => {
+            console.error('Error cargando archivos:', err);
+            if (loaderInfo) {
+              loaderInfo.innerHTML = `
+                <div class="text-danger text-center bg-dark p-4 rounded border border-danger">
+                  <i class="bi bi-exclamation-triangle fs-1"></i>
+                  <h5 class="mt-3">Error al cargar la serie DICOM</h5>
+                  <p class="text-secondary">Asegúrate de que el directorio exista y contenga archivos .dcm válidos.</p>
+                  <div class="alert alert-danger mt-3 text-start bg-black border-secondary">
+                    <code>${err.message || err.toString()}</code>
+                  </div>
+                </div>
+              `;
+            }
+          });
+      };
+
+      /**
+       * Renderiza la lista de series en el sidebar y carga la primera
+       */
+      const renderSeriesList = (seriesData) => {
+        const container = document.getElementById('seriesListBody');
+        document.getElementById('seriesCount').textContent = seriesData.length;
+        container.innerHTML = '';
+
+        seriesData.forEach((s, index) => {
+          const card = document.createElement('div');
+          card.className = 'series-card' + (index === 0 ? ' active' : '');
+          card.dataset.seriesId = s.id;
+
+          const bodyPartText = s.bodyPart || 'Sin especificar';
+          const modalityBadge = s.modality ? `<span class="badge bg-info text-dark series-modality-badge">${s.modality}</span>` : '';
+          const viewBadge = s.viewPosition ? `<span class="badge bg-secondary series-modality-badge ms-1">${s.viewPosition}</span>` : '';
+          const descText = s.description || s.procedureName || '';
+
+          card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="series-number">Serie #${s.seriesNumber || (index + 1)}</span>
+              <div>${modalityBadge}${viewBadge}</div>
+            </div>
+            <div class="series-body-part"><i class="bi bi-activity me-1"></i>${bodyPartText}</div>
+            ${descText ? `<div class="series-desc">${descText}</div>` : ''}
+          `;
+
+          card.addEventListener('click', () => {
+            container.querySelectorAll('.series-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+
+            const filesUrl = `/dicom/series/<%= studyId %>/${s.id}/archivos`;
+            const imageBaseUrl = `/dicom/series/<%= studyId %>/${s.id}/archivos`;
+            loadImagesFromUrl(filesUrl, imageBaseUrl, s);
           });
 
-        })
-        .catch(err => {
-          console.error('Error cargando lista de DICOM:', err);
-          const element = document.getElementById('dicomImage');
-          element.innerHTML = `
-            <div class="text-danger text-center bg-dark p-4 rounded border border-danger">
-              <i class="bi bi-exclamation-triangle fs-1"></i>
-              <h5 class="mt-3">Error al cargar la serie DICOM</h5>
-              <p class="text-secondary">Asegúrate de que el directorio exista y contenga archivos .dcm válidos.</p>
-              <div class="alert alert-danger mt-3 text-start bg-black border-secondary">
-                <code>${err.message || err.toString()}</code>
-              </div>
-            </div>
-          `;
+          container.appendChild(card);
         });
+
+        // Auto-cargar la primera serie
+        if (seriesData.length > 0) {
+          const firstSeries = seriesData[0];
+          const filesUrl = `/dicom/series/<%= studyId %>/${firstSeries.id}/archivos`;
+          const imageBaseUrl = `/dicom/series/<%= studyId %>/${firstSeries.id}/archivos`;
+          loadImagesFromUrl(filesUrl, imageBaseUrl, firstSeries);
+        }
+      };
+
+      // ========================
+      // INICIO: Cargar datos
+      // ========================
+      if (serverSeries && serverSeries.length > 0) {
+        // Modo Series: mostrar las series del estudio
+        renderSeriesList(serverSeries);
+      } else {
+        // Modo Legacy: cargar directamente desde el directorio del estudio
+        document.getElementById('seriesListContainer').style.display = 'none';
+        const filesUrl = '/dicom/archivos/<%= studyId %>';
+        const imageBaseUrl = '/dicom/archivos/<%= studyId %>';
+        loadImagesFromUrl(filesUrl, imageBaseUrl, null);
+      }
 
     });
   </script>
