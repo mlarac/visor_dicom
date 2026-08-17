@@ -3,6 +3,7 @@ import {
   RenderingEngine,
   Enums as coreEnums,
   imageLoader,
+  metaData,
   getWebWorkerManager
 } from '@cornerstonejs/core';
 
@@ -259,21 +260,25 @@ async function loadImagesFromUrl(filesUrl, imageBaseUrl, seriesInfo) {
 
     // Cargar metadatos DICOM de la primera imagen
     imageLoader.loadAndCacheImage(imageIds[0]).then(image => {
-      if (image && image.data) {
-        const patientName = (image.data.string && image.data.string('x00100010')) || 'Desconocido';
-        const patientId = (image.data.string && image.data.string('x00100020')) || 'N/A';
-        const studyDate = (image.data.string && image.data.string('x00080020')) || 'Desconocida';
-        const modality = (image.data.string && image.data.string('x00080060')) || 'N/A';
+      const patientModule = metaData.get('patientModule', imageIds[0]) || {};
+      const generalStudyModule = metaData.get('generalStudyModule', imageIds[0]) || {};
+      const generalSeriesModule = metaData.get('generalSeriesModule', imageIds[0]) || {};
 
-        const dicomMetaEl = document.getElementById('dicomMetadata');
-        if (dicomMetaEl) {
-          dicomMetaEl.innerHTML = `
-            <p class="mb-1"><strong>Paciente:</strong> <br> ${patientName}</p>
-            <p class="mb-1"><strong>ID Paciente:</strong> ${patientId}</p>
-            <p class="mb-1"><strong>Fecha Estudio:</strong> ${studyDate}</p>
-            <p class="mb-1"><strong>Modalidad:</strong> ${modality}</p>
-          `;
-        }
+      // Obtener valores con fallback a módulos y dataset
+      const rawData = image?.data || {};
+      const patientName = patientModule.patientName || rawData['x00100010'] || (rawData.string && rawData.string('x00100010')) || 'Desconocido';
+      const patientId = patientModule.patientId || rawData['x00100020'] || (rawData.string && rawData.string('x00100020')) || 'N/A';
+      const studyDate = generalStudyModule.studyDate || rawData['x00080020'] || (rawData.string && rawData.string('x00080020')) || 'Desconocida';
+      const modality = generalSeriesModule.modality || rawData['x00080060'] || (rawData.string && rawData.string('x00080060')) || 'N/A';
+
+      const dicomMetaEl = document.getElementById('dicomMetadata');
+      if (dicomMetaEl) {
+        dicomMetaEl.innerHTML = `
+          <p class="mb-1"><strong>Paciente:</strong> <br> ${patientName}</p>
+          <p class="mb-1"><strong>ID Paciente:</strong> ${patientId}</p>
+          <p class="mb-1"><strong>Fecha Estudio:</strong> ${studyDate}</p>
+          <p class="mb-1"><strong>Modalidad:</strong> ${modality}</p>
+        `;
       }
     }).catch(err => console.warn('[Visor DICOM] Aviso al leer metadatos de cabecera:', err));
 
