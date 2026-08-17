@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "node --watch --env-file=.env server.js",
     "start": "node --env-file=.env server.js",
     "prod": "cross-env NODE_ENV=production node --env-file=.env server.js",
     "test": "node --test"

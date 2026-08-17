@@ -1,0 +1,146 @@
+body {
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+.top-bar {
+  background-color: rgba(30, 30, 30, 0.9);
+  border-bottom: 1px solid #333;
+}
+
+#mainContainer {
+  display: flex;
+  width: 100vw;
+  height: calc(100vh - 56px);
+}
+
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background-color: #1a1a1a;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section {
+  padding: 0.75rem;
+}
+
+.sidebar-section-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#dicomImage {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #111;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Series cards */
+.series-card {
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.series-card:hover {
+  background: #2a2a2a;
+  border-color: #555;
+}
+
+.series-card.active {
+  background: linear-gradient(135deg, #1a3a5c, #1a2a40);
+  border-color: #0d6efd;
+  box-shadow: 0 0 8px rgba(13, 110, 253, 0.3);
+}
+
+.series-card .series-number {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.series-card .series-body-part {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+}
+
+.series-card .series-modality-badge {
+  font-size: 0.65rem;
+  padding: 0.15em 0.5em;
+}
+
+.series-card .series-desc {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* Thumbnails */
+.thumbnail-box {
+  width: 100%;
+  height: 130px;
+  background-color: #000;
+  border: 1px solid #444;
+  margin-bottom: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.thumbnail-box:hover {
+  border-color: #0d6efd;
+}
+
+.thumbnail-box.active-thumb {
+  border-color: #0d6efd;
+  box-shadow: 0 0 6px rgba(13, 110, 253, 0.4);
+}
+
+/* Metadata panel */
+#seriesMetadata {
+  font-size: 0.78rem;
+}
+
+#seriesMetadata .meta-label {
+  color: #888;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+#seriesMetadata .meta-value {
+  color: #ddd;
+  font-weight: 500;
+}
+
+/* Scrollable sections */
+#seriesListContainer {
+  max-height: 40%;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#thumbnailSection {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
