@@ -45,7 +45,10 @@ async function initializeVisor() {
 
     // 2. Inicializar DICOM Image Loader
     cornerstoneDICOMImageLoader.init({
-      maxWebWorkers: 2
+      maxWebWorkers: 2,
+      decodeConfig: {
+        wasmBasePath: '/js'
+      }
     });
 
     // Registrar explícitamente el Web Worker compilado

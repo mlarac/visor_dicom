@@ -71,6 +71,7 @@ async function build() {
       target: ['es2022', 'chrome100', 'firefox100', 'safari15'],
       define: {
         'process.env.NODE_ENV': '"production"',
+        'import.meta.url': 'window.location.href',
       },
       plugins: [nodeShimsPlugin],
       logLevel: 'info',
@@ -87,6 +88,7 @@ async function build() {
       target: ['es2022', 'chrome100', 'firefox100', 'safari15'],
       define: {
         'process.env.NODE_ENV': '"production"',
+        'import.meta.url': 'self.location.href',
       },
       plugins: [nodeShimsPlugin],
       logLevel: 'info',
