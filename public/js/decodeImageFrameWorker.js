@@ -11120,7 +11120,7 @@ function resolveWasmUrl(fileName, defaultUrl) {
 }
 
 // node_modules/@cornerstonejs/dicom-image-loader/dist/esm/shared/decoders/decodeJPEGBaseline8Bit.js
-var libjpegTurboWasm = new URL("@cornerstonejs/codec-libjpeg-turbo-8bit/decodewasm", self.location.href);
+var libjpegTurboWasm = "/js/libjpegturbowasm_decode.wasm";
 var local = {
   codec: void 0,
   decoder: void 0
@@ -11254,7 +11254,7 @@ var decodeJPEGLossless_default = decodeJPEGLossless;
 
 // node_modules/@cornerstonejs/dicom-image-loader/dist/esm/shared/decoders/decodeJPEGLS.js
 var import_decodewasmjs2 = __toESM(require_charlswasm_decode(), 1);
-var charlsWasm = new URL("@cornerstonejs/codec-charls/decodewasm", self.location.href);
+var charlsWasm = "/js/charlswasm_decode.wasm";
 var local4 = {
   codec: void 0,
   decoder: void 0,
@@ -11326,7 +11326,7 @@ var decodeJPEGLS_default = decodeAsync2;
 
 // node_modules/@cornerstonejs/dicom-image-loader/dist/esm/shared/decoders/decodeJPEG2000.js
 var import_decodewasmjs3 = __toESM(require_openjpegwasm_decode(), 1);
-var openjpegWasm = new URL("@cornerstonejs/codec-openjpeg/decodewasm", self.location.href);
+var openjpegWasm = "/js/openjpegwasm_decode.wasm";
 var local5 = {
   codec: void 0,
   decoder: void 0,
@@ -11410,7 +11410,7 @@ var decodeJPEG2000_default = decodeAsync3;
 
 // node_modules/@cornerstonejs/dicom-image-loader/dist/esm/shared/decoders/decodeHTJ2K.js
 var import_wasmjs = __toESM(require_openjphjs(), 1);
-var openjphWasm = new URL("@cornerstonejs/codec-openjph/wasm", self.location.href);
+var openjphWasm = "/js/openjphjs.wasm";
 var local6 = {
   codec: void 0,
   decoder: void 0,

@@ -7,10 +7,11 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin para shim de módulos de Node (fs, path, url, etc.) usados en fallbacks de Emscripten
-const nodeShimsPlugin = {
-  name: 'node-shims',
+// Plugin para shim de módulos de Node y corrección de URLs de decodificadores WASM
+const cornerstoneFixPlugin = {
+  name: 'cornerstone-fix',
   setup(build) {
+    // 1. Shims de Node.js
     build.onResolve({ filter: /^(fs|path|crypto|url|http|https|stream|zlib)$/ }, args => ({
       path: args.path,
       namespace: 'empty-node-module',
@@ -26,6 +27,24 @@ const nodeShimsPlugin = {
         contents: 'export default {}; export const readFileSync = () => {}; export const existsSync = () => false;',
         loader: 'js',
       };
+    });
+
+    // 2. Corregir new URL('@cornerstonejs/...', import.meta.url) que falla en navegadores
+    build.onLoad({ filter: /shared[\\\/]decoders[\\\/]decode.*\.js$/ }, async args => {
+      let source = await fs.readFile(args.path, 'utf8');
+      source = source
+        .replace(/new URL\('@cornerstonejs\/codec-libjpeg-turbo-8bit\/decodewasm',\s*import\.meta\.url\)/g, '"/js/libjpegturbowasm_decode.wasm"')
+        .replace(/new URL\('@cornerstonejs\/codec-openjpeg\/decodewasm',\s*import\.meta\.url\)/g, '"/js/openjpegwasm_decode.wasm"')
+        .replace(/new URL\('@cornerstonejs\/codec-charls\/decodewasm',\s*import\.meta\.url\)/g, '"/js/charlswasm_decode.wasm"')
+        .replace(/new URL\('@cornerstonejs\/codec-openjph\/wasm',\s*import\.meta\.url\)/g, '"/js/openjphjs.wasm"');
+      return { contents: source, loader: 'js' };
+    });
+
+    // 3. Corregir init.js de dicom-image-loader para la ruta del Worker
+    build.onLoad({ filter: /dicom-image-loader[\\\/]dist[\\\/]esm[\\\/]init\.js$/ }, async args => {
+      let source = await fs.readFile(args.path, 'utf8');
+      source = source.replace(/new URL\('\.\/decodeImageFrameWorker\.js',\s*import\.meta\.url\)/g, '"/js/decodeImageFrameWorker.js"');
+      return { contents: source, loader: 'js' };
     });
   },
 };
@@ -71,9 +90,8 @@ async function build() {
       target: ['es2022', 'chrome100', 'firefox100', 'safari15'],
       define: {
         'process.env.NODE_ENV': '"production"',
-        'import.meta.url': 'window.location.href',
       },
-      plugins: [nodeShimsPlugin],
+      plugins: [cornerstoneFixPlugin],
       logLevel: 'info',
     });
 
@@ -88,9 +106,8 @@ async function build() {
       target: ['es2022', 'chrome100', 'firefox100', 'safari15'],
       define: {
         'process.env.NODE_ENV': '"production"',
-        'import.meta.url': 'self.location.href',
       },
-      plugins: [nodeShimsPlugin],
+      plugins: [cornerstoneFixPlugin],
       logLevel: 'info',
     });
 
