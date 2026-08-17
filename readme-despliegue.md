@@ -19,7 +19,11 @@ Este documento describe los pasos necesarios para desplegar la aplicación **Vis
    ```
 3. Instala los paquetes de Node.js ejecutando:
    ```cmd
-   npm install --production
+   npm install
+   ```
+4. Compila el bundle del visor (Cornerstone3D):
+   ```cmd
+   npm run build
    ```
 
 ---

@@ -2,7 +2,8 @@ import {
   init as initCornerstone,
   RenderingEngine,
   Enums as coreEnums,
-  imageLoader
+  imageLoader,
+  getWebWorkerManager
 } from '@cornerstonejs/core';
 
 import {
@@ -36,62 +37,86 @@ let isInitialized = false;
 async function initializeVisor() {
   if (isInitialized) return;
 
-  // 1. Inicializar Core y Tools
-  await initCornerstone();
-  await initCornerstoneTools();
+  try {
+    console.log('[Visor DICOM] Inicializando Cornerstone3D y Tools...');
+    // 1. Inicializar Core y Tools
+    await initCornerstone();
+    await initCornerstoneTools();
 
-  // 2. Inicializar DICOM Image Loader
-  cornerstoneDICOMImageLoader.init({
-    maxWebWorkers: navigator.hardwareConcurrency ? Math.max(1, Math.floor(navigator.hardwareConcurrency / 2)) : 2
-  });
+    // 2. Inicializar DICOM Image Loader
+    cornerstoneDICOMImageLoader.init({
+      maxWebWorkers: 2
+    });
 
-  // 3. Registrar herramientas globalmente
-  addTool(WindowLevelTool);
-  addTool(ZoomTool);
-  addTool(PanTool);
-  addTool(LengthTool);
-  addTool(StackScrollTool);
-
-  // 4. Crear ToolGroup
-  toolGroup = ToolGroupManager.createToolGroup(TOOL_GROUP_ID);
-  toolGroup.addTool(WindowLevelTool.toolName);
-  toolGroup.addTool(ZoomTool.toolName);
-  toolGroup.addTool(PanTool.toolName);
-  toolGroup.addTool(LengthTool.toolName);
-  toolGroup.addTool(StackScrollTool.toolName);
-
-  // Configuración inicial de herramientas
-  toolGroup.setToolActive(WindowLevelTool.toolName, {
-    bindings: [{ mouseButton: toolEnums.MouseBindings.Primary }]
-  });
-  toolGroup.setToolActive(ZoomTool.toolName, {
-    bindings: [{ mouseButton: toolEnums.MouseBindings.Secondary }]
-  });
-  toolGroup.setToolActive(PanTool.toolName, {
-    bindings: [{ mouseButton: toolEnums.MouseBindings.Auxiliary }]
-  });
-  toolGroup.setToolActive(StackScrollTool.toolName, {
-    bindings: [{ mouseButton: toolEnums.MouseBindings.Wheel }]
-  });
-
-  // 5. Configurar RenderingEngine y Viewport
-  const element = document.getElementById('dicomImage');
-  if (!element) return;
-
-  renderingEngine = new RenderingEngine(RENDERING_ENGINE_ID);
-  const viewportInput = {
-    viewportId: VIEWPORT_ID,
-    type: coreEnums.ViewportType.STACK,
-    element: element,
-    defaultOptions: {
-      background: [0, 0, 0]
+    // Registrar explícitamente el Web Worker compilado
+    try {
+      const workerManager = getWebWorkerManager();
+      const customWorkerFn = () => {
+        return new Worker('/js/decodeImageFrameWorker.js', { type: 'module' });
+      };
+      workerManager.registerWorker('dicomImageLoader', customWorkerFn, {
+        maxWorkerInstances: 2,
+        overwrite: true
+      });
+      console.log('[Visor DICOM] Web Worker de decodificación registrado en /js/decodeImageFrameWorker.js');
+    } catch (workerErr) {
+      console.warn('[Visor DICOM] Aviso al registrar Worker:', workerErr);
     }
-  };
 
-  renderingEngine.enableElement(viewportInput);
-  toolGroup.addViewport(VIEWPORT_ID, RENDERING_ENGINE_ID);
+    // 3. Registrar herramientas globalmente
+    addTool(WindowLevelTool);
+    addTool(ZoomTool);
+    addTool(PanTool);
+    addTool(LengthTool);
+    addTool(StackScrollTool);
 
-  isInitialized = true;
+    // 4. Crear ToolGroup
+    toolGroup = ToolGroupManager.createToolGroup(TOOL_GROUP_ID);
+    toolGroup.addTool(WindowLevelTool.toolName);
+    toolGroup.addTool(ZoomTool.toolName);
+    toolGroup.addTool(PanTool.toolName);
+    toolGroup.addTool(LengthTool.toolName);
+    toolGroup.addTool(StackScrollTool.toolName);
+
+    // Configuración inicial de herramientas
+    toolGroup.setToolActive(WindowLevelTool.toolName, {
+      bindings: [{ mouseButton: toolEnums.MouseBindings.Primary }]
+    });
+    toolGroup.setToolActive(ZoomTool.toolName, {
+      bindings: [{ mouseButton: toolEnums.MouseBindings.Secondary }]
+    });
+    toolGroup.setToolActive(PanTool.toolName, {
+      bindings: [{ mouseButton: toolEnums.MouseBindings.Auxiliary }]
+    });
+    toolGroup.setToolActive(StackScrollTool.toolName, {
+      bindings: [{ mouseButton: toolEnums.MouseBindings.Wheel }]
+    });
+
+    // 5. Configurar RenderingEngine y Viewport
+    const element = document.getElementById('dicomImage');
+    if (!element) {
+      console.error('[Visor DICOM] No se encontró el elemento #dicomImage');
+      return;
+    }
+
+    renderingEngine = new RenderingEngine(RENDERING_ENGINE_ID);
+    const viewportInput = {
+      viewportId: VIEWPORT_ID,
+      type: coreEnums.ViewportType.STACK,
+      element: element,
+      defaultOptions: {
+        background: [0, 0, 0]
+      }
+    };
+
+    renderingEngine.enableElement(viewportInput);
+    toolGroup.addViewport(VIEWPORT_ID, RENDERING_ENGINE_ID);
+
+    isInitialized = true;
+    console.log('[Visor DICOM] Cornerstone3D inicializado con éxito');
+  } catch (err) {
+    console.error('[Visor DICOM] Error fatal al inicializar Cornerstone3D:', err);
+  }
 }
 
 /**
@@ -207,15 +232,24 @@ async function loadImagesFromUrl(filesUrl, imageBaseUrl, seriesInfo) {
     const imageCountEl = document.getElementById('imageCount');
     if (imageCountEl) imageCountEl.textContent = data.files.length;
 
-    const imageIds = data.files.map(filename => 'wadouri:' + imageBaseUrl + '/' + encodeURIComponent(filename));
+    // Crear URIs absolutas para wadouri
+    const origin = window.location.origin;
+    const imageIds = data.files.map(filename => 'wadouri:' + origin + imageBaseUrl + '/' + encodeURIComponent(filename));
 
     currentStack = {
       currentImageIdIndex: 0,
       imageIds: imageIds
     };
 
+    console.log('[Visor DICOM] Cargando Stack con', imageIds.length, 'imágenes en Cornerstone3D:', imageIds[0]);
+
     const viewport = renderingEngine.getViewport(VIEWPORT_ID);
+    if (!viewport) {
+      throw new Error('No se encontró el StackViewport de Cornerstone3D');
+    }
+
     await viewport.setStack(imageIds, 0);
+    viewport.resetCamera();
     viewport.render();
 
     if (loaderInfo) loaderInfo.style.display = 'none';
@@ -238,17 +272,18 @@ async function loadImagesFromUrl(filesUrl, imageBaseUrl, seriesInfo) {
           `;
         }
       }
-    }).catch(err => console.warn('No se pudieron leer metadatos de cabecera:', err));
+    }).catch(err => console.warn('[Visor DICOM] Aviso al leer metadatos de cabecera:', err));
 
-    // Renderizar miniaturas
+    // Renderizar lista de miniaturas en el sidebar
     const thumbContainer = document.getElementById('thumbnailContainer');
     imageIds.forEach((id, index) => {
       const thumbWrapper = document.createElement('div');
       thumbWrapper.style.position = 'relative';
 
       const thumbDiv = document.createElement('div');
-      thumbDiv.className = 'thumbnail-box' + (index === 0 ? ' active-thumb' : '');
+      thumbDiv.className = 'thumbnail-box d-flex align-items-center justify-content-center text-secondary small' + (index === 0 ? ' active-thumb' : '');
       thumbDiv.dataset.index = index;
+      thumbDiv.innerHTML = `<i class="bi bi-file-earmark-medical fs-2"></i>`;
 
       const label = document.createElement('span');
       label.textContent = (index + 1).toString();
@@ -270,7 +305,7 @@ async function loadImagesFromUrl(filesUrl, imageBaseUrl, seriesInfo) {
     });
 
   } catch (err) {
-    console.error('Error cargando archivos:', err);
+    console.error('[Visor DICOM] Error cargando archivos:', err);
     if (loaderInfo) {
       loaderInfo.innerHTML = `
         <div class="text-danger text-center bg-dark p-4 rounded border border-danger">
