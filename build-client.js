@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin para shim de módulos de Node y corrección de URLs de decodificadores WASM
+// Plugin para shim de módulos de Node y reemplazo seguro de import.meta.url
 const cornerstoneFixPlugin = {
   name: 'cornerstone-fix',
   setup(build) {
@@ -29,22 +29,29 @@ const cornerstoneFixPlugin = {
       };
     });
 
-    // 2. Corregir new URL('@cornerstonejs/...', import.meta.url) que falla en navegadores
-    build.onLoad({ filter: /shared[\\\/]decoders[\\\/]decode.*\.js$/ }, async args => {
-      let source = await fs.readFile(args.path, 'utf8');
-      source = source
-        .replace(/new URL\('@cornerstonejs\/codec-libjpeg-turbo-8bit\/decodewasm',\s*import\.meta\.url\)/g, '"/js/libjpegturbowasm_decode.wasm"')
-        .replace(/new URL\('@cornerstonejs\/codec-openjpeg\/decodewasm',\s*import\.meta\.url\)/g, '"/js/openjpegwasm_decode.wasm"')
-        .replace(/new URL\('@cornerstonejs\/codec-charls\/decodewasm',\s*import\.meta\.url\)/g, '"/js/charlswasm_decode.wasm"')
-        .replace(/new URL\('@cornerstonejs\/codec-openjph\/wasm',\s*import\.meta\.url\)/g, '"/js/openjphjs.wasm"');
-      return { contents: source, loader: 'js' };
-    });
-
-    // 3. Corregir init.js de dicom-image-loader para la ruta del Worker
-    build.onLoad({ filter: /dicom-image-loader[\\\/]dist[\\\/]esm[\\\/]init\.js$/ }, async args => {
-      let source = await fs.readFile(args.path, 'utf8');
-      source = source.replace(/new URL\('\.\/decodeImageFrameWorker\.js',\s*import\.meta\.url\)/g, '"/js/decodeImageFrameWorker.js"');
-      return { contents: source, loader: 'js' };
+    // 2. Transformar cualquier archivo que contenga import.meta.url
+    build.onLoad({ filter: /\.(js|mjs|ts)$/ }, async args => {
+      // Omitir nuestros propios archivos de entrada en src/client
+      if (args.path.includes('src/client') || args.path.includes('src\\client')) {
+        return null;
+      }
+      try {
+        let source = await fs.readFile(args.path, 'utf8');
+        if (source.includes('import.meta.url')) {
+          source = source
+            .replace(/new URL\('@cornerstonejs\/codec-libjpeg-turbo-8bit\/decodewasm'[^)]*\)/g, '"/js/libjpegturbowasm_decode.wasm"')
+            .replace(/new URL\('@cornerstonejs\/codec-openjpeg\/decodewasm'[^)]*\)/g, '"/js/openjpegwasm_decode.wasm"')
+            .replace(/new URL\('@cornerstonejs\/codec-charls\/decodewasm'[^)]*\)/g, '"/js/charlswasm_decode.wasm"')
+            .replace(/new URL\('@cornerstonejs\/codec-openjph\/wasm'[^)]*\)/g, '"/js/openjphjs.wasm"')
+            .replace(/new URL\('\.\/decodeImageFrameWorker\.js'[^)]*\)/g, '"/js/decodeImageFrameWorker.js"')
+            .replace(/new URL\('\.\.\/workers\/computeWorker\.js'[^)]*\)/g, '"/js/computeWorker.js"')
+            .replace(/import\.meta\.url/g, '"http://localhost:3000/js/"');
+          return { contents: source, loader: 'js' };
+        }
+      } catch (err) {
+        // Dejar que esbuild lo procese normalmente
+      }
+      return null;
     });
   },
 };
@@ -111,10 +118,29 @@ async function build() {
       logLevel: 'info',
     });
 
-    // 3. Copiar decodificadores WASM
+    // 3. Compilar Web Worker de cómputo (tools)
+    const computeWorkerEntry = path.join(__dirname, 'node_modules/@cornerstonejs/tools/dist/esm/workers/computeWorker.js');
+    if (existsSync(computeWorkerEntry)) {
+      await esbuild.build({
+        entryPoints: [computeWorkerEntry],
+        bundle: true,
+        minify: false,
+        sourcemap: true,
+        format: 'esm',
+        outfile: path.join(__dirname, 'public/js/computeWorker.js'),
+        target: ['es2022', 'chrome100', 'firefox100', 'safari15'],
+        define: {
+          'process.env.NODE_ENV': '"production"',
+        },
+        plugins: [cornerstoneFixPlugin],
+        logLevel: 'info',
+      });
+    }
+
+    // 4. Copiar decodificadores WASM
     await copyWasmFiles();
 
-    console.log('✓ Cornerstone3D client bundle, Web Worker y codecs WASM generados exitosamente en public/js/');
+    console.log('✓ Cornerstone3D client bundle, Web Workers y codecs WASM generados exitosamente en public/js/');
   } catch (err) {
     console.error('Error al compilar bundles de cliente:', err);
     process.exit(1);
