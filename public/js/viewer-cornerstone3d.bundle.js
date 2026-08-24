@@ -212288,6 +212288,20 @@ fn main(
       };
       renderingEngine.enableElement(viewportInput);
       toolGroup.addViewport(VIEWPORT_ID, RENDERING_ENGINE_ID);
+      element.addEventListener(enums_exports2.Events.STACK_NEW_IMAGE, (evt) => {
+        const { imageIdIndex } = evt.detail || {};
+        if (typeof imageIdIndex === "number") {
+          currentStack.currentImageIdIndex = imageIdIndex;
+          document.querySelectorAll(".thumbnail-box").forEach((tb, idx) => {
+            if (idx === imageIdIndex) {
+              tb.classList.add("active-thumb");
+              tb.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } else {
+              tb.classList.remove("active-thumb");
+            }
+          });
+        }
+      });
       isInitialized = true;
       console.log("[Visor DICOM] Cornerstone3D inicializado con \xE9xito");
     } catch (err4) {
@@ -212359,6 +212373,34 @@ fn main(
     const container = document.getElementById("thumbnailContainer");
     if (container) container.innerHTML = "";
   }
+  async function renderThumbnail(container, imageId) {
+    const canvas = document.createElement("canvas");
+    canvas.className = "thumbnail-canvas";
+    try {
+      await utilities_exports3.loadImageToCanvas({
+        canvas,
+        imageId,
+        thumbnail: true,
+        useCPURendering: true
+      });
+      container.innerHTML = "";
+      container.appendChild(canvas);
+    } catch (cpuErr) {
+      try {
+        await utilities_exports3.loadImageToCanvas({
+          canvas,
+          imageId,
+          thumbnail: true,
+          useCPURendering: false
+        });
+        container.innerHTML = "";
+        container.appendChild(canvas);
+      } catch (gpuErr) {
+        console.warn("[Visor DICOM] No se pudo renderizar miniatura para:", imageId, gpuErr);
+        container.innerHTML = `<i class="bi bi-file-earmark-medical fs-2 text-secondary"></i>`;
+      }
+    }
+  }
   async function loadImagesFromUrl(filesUrl, imageBaseUrl, seriesInfo) {
     const loaderInfo = document.getElementById("loaderInfo");
     if (loaderInfo) {
@@ -212413,18 +212455,19 @@ fn main(
       const thumbContainer = document.getElementById("thumbnailContainer");
       imageIds.forEach((id, index) => {
         const thumbWrapper = document.createElement("div");
-        thumbWrapper.style.position = "relative";
+        thumbWrapper.className = "thumbnail-item position-relative mb-2";
         const thumbDiv = document.createElement("div");
-        thumbDiv.className = "thumbnail-box d-flex align-items-center justify-content-center text-secondary small" + (index === 0 ? " active-thumb" : "");
+        thumbDiv.className = "thumbnail-box d-flex align-items-center justify-content-center text-secondary" + (index === 0 ? " active-thumb" : "");
         thumbDiv.dataset.index = index;
-        thumbDiv.innerHTML = `<i class="bi bi-file-earmark-medical fs-2"></i>`;
+        thumbDiv.innerHTML = `<div class="spinner-border spinner-border-sm text-secondary" role="status" style="width: 1rem; height: 1rem;"></div>`;
         const label = document.createElement("span");
-        label.textContent = (index + 1).toString();
-        label.className = "badge bg-dark position-absolute bottom-0 end-0 m-1";
+        label.textContent = `${index + 1} / ${imageIds.length}`;
+        label.className = "badge bg-dark bg-opacity-75 position-absolute bottom-0 end-0 m-1 font-monospace";
         thumbWrapper.appendChild(thumbDiv);
         thumbWrapper.appendChild(label);
         thumbContainer.appendChild(thumbWrapper);
         activeThumbnails.push(thumbDiv);
+        renderThumbnail(thumbDiv, id);
         thumbDiv.addEventListener("click", async () => {
           document.querySelectorAll(".thumbnail-box").forEach((tb) => tb.classList.remove("active-thumb"));
           thumbDiv.classList.add("active-thumb");
@@ -212455,6 +212498,7 @@ fn main(
     if (countEl) countEl.textContent = seriesData.length;
     if (!container) return;
     container.innerHTML = "";
+    const origin = window.location.origin;
     seriesData.forEach((s, index) => {
       const card = document.createElement("div");
       card.className = "series-card" + (index === 0 ? " active" : "");
@@ -212464,18 +212508,38 @@ fn main(
       const viewBadge = s.viewPosition ? `<span class="badge bg-secondary series-modality-badge ms-1">${s.viewPosition}</span>` : "";
       const descText = s.description || s.procedureName || "";
       card.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="series-number">Serie #${s.seriesNumber || index + 1}</span>
-        <div>${modalityBadge}${viewBadge}</div>
+      <div class="d-flex align-items-center">
+        <div class="series-card-thumb me-2 d-flex align-items-center justify-content-center bg-black rounded flex-shrink-0" style="width: 52px; height: 52px; overflow: hidden; border: 1px solid #444;">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status" style="width: 12px; height: 12px;"></div>
+        </div>
+        <div class="flex-grow-1 overflow-hidden">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="series-number">Serie #${s.seriesNumber || index + 1}</span>
+            <div>${modalityBadge}${viewBadge}</div>
+          </div>
+          <div class="series-body-part text-truncate"><i class="bi bi-activity me-1"></i>${bodyPartText}</div>
+          ${descText ? `<div class="series-desc text-truncate">${descText}</div>` : ""}
+        </div>
       </div>
-      <div class="series-body-part"><i class="bi bi-activity me-1"></i>${bodyPartText}</div>
-      ${descText ? `<div class="series-desc">${descText}</div>` : ""}
     `;
+      const filesUrl = `/dicom/series/${studyId}/${s.id}/archivos`;
+      const imageBaseUrl = `/dicom/series/${studyId}/${s.id}/archivos`;
+      fetch(filesUrl).then((res) => res.json()).then((data3) => {
+        const thumbEl = card.querySelector(".series-card-thumb");
+        if (!thumbEl) return;
+        if (data3.files && data3.files.length > 0) {
+          const firstImageId = "wadouri:" + origin + imageBaseUrl + "/" + encodeURIComponent(data3.files[0]);
+          renderThumbnail(thumbEl, firstImageId);
+        } else {
+          thumbEl.innerHTML = '<i class="bi bi-folder text-secondary"></i>';
+        }
+      }).catch(() => {
+        const thumbEl = card.querySelector(".series-card-thumb");
+        if (thumbEl) thumbEl.innerHTML = '<i class="bi bi-file-earmark-medical text-secondary"></i>';
+      });
       card.addEventListener("click", () => {
         container.querySelectorAll(".series-card").forEach((c) => c.classList.remove("active"));
         card.classList.add("active");
-        const filesUrl = `/dicom/series/${studyId}/${s.id}/archivos`;
-        const imageBaseUrl = `/dicom/series/${studyId}/${s.id}/archivos`;
         loadImagesFromUrl(filesUrl, imageBaseUrl, s);
       });
       container.appendChild(card);

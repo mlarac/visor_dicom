@@ -104,24 +104,48 @@ body {
 }
 
 /* Thumbnails */
+.thumbnail-item {
+  width: 100%;
+}
+
 .thumbnail-box {
   width: 100%;
   height: 130px;
-  background-color: #000;
-  border: 1px solid #444;
-  margin-bottom: 8px;
+  background-color: #0d0d0d;
+  border: 2px solid #333;
   cursor: pointer;
-  border-radius: 4px;
-  transition: border-color 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .thumbnail-box:hover {
   border-color: #0d6efd;
+  background-color: #161616;
 }
 
 .thumbnail-box.active-thumb {
   border-color: #0d6efd;
-  box-shadow: 0 0 6px rgba(13, 110, 253, 0.4);
+  box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+  background-color: #111;
+}
+
+.thumbnail-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  display: block;
+}
+
+.series-card-thumb .thumbnail-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
 }
 
 /* Metadata panel */
