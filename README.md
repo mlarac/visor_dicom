@@ -23,6 +23,7 @@ La aplicación está construida sobre el patrón de diseño **MVC (Modelo-Vista-
 - **[SQL Server](https://www.microsoft.com/sql-server/)**: Motor de base de datos relacional.
 - **[Sequelize](https://sequelize.org/)**: ORM empleado para interactuar de forma segura con SQL Server, manejar migraciones y sincronizar modelos.
 - **Seguridad y Gestión de Sesiones**: 
+  - `helmet`: Protección de cabeceras HTTP de seguridad y Content Security Policy (CSP).
   - `bcrypt`: Para el almacenamiento de contraseñas mediante hashing seguro.
   - `express-session`: Gestión de sesiones de usuario con mitigación contra ataques XSS y CSRF.
   - `connect-session-sequelize`: Persistencia de las sesiones del usuario directamente en la base de datos, evitando cierres de sesión en reinicios del servidor.
