@@ -105,6 +105,15 @@ insumos bd/
 *.sqlite
 *.db
 
-# Si en algún momento decides ignorar la configuración de la BD para que cada dev tenga la suya
-# y no subir credenciales reales (recomendado usar .env en su lugar):
-# config/database.js
+# =========================================
+# ARTEFACTOS DE COMPILACIÓN (BUILD)
+# =========================================
+
+# Bundles de Cornerstone3D, Workers y WASM (generados automáticamente por npm run build)
+public/js/viewer-cornerstone3d.bundle.js
+public/js/decodeImageFrameWorker.js
+public/js/computeWorker.js
+public/js/*.wasm
+public/js/*.map
+*.map
+

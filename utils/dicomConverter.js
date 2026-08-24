@@ -292,20 +292,20 @@ export const convertDicomToJpgBuffer = async (filePath) => {
       try {
         return await sharp(fragBuf).jpeg({ quality: 90 }).toBuffer();
       } catch (err) {
-        // Si sharp falla por formato de compresión como JPEG Lossless (SOF 0xC3)
-        if (!err.message.includes('0xc3') && !err.message.includes('Unsupported JPEG process')) {
+        // Si sharp falla (ej. JPEG Lossless SOF3 / precisión de 12 o 16 bits no soportada por libvips)
+        try {
+          const res = decodeJpegLossless(fragBuf);
+          const numPixels = res.rows * res.cols;
+          const { min, max } = computePixelRange(res.output, numPixels, rescaleSlope, rescaleIntercept);
+          const { wc, ww } = computeWindowValues(dataSet, min, max);
+          const grayBuffer = applyWindowing(res.output, numPixels, rescaleSlope, rescaleIntercept, wc, ww, isMono1);
+
+          return await sharp(grayBuffer, {
+            raw: { width: res.cols, height: res.rows, channels: 1 }
+          }).jpeg({ quality: 90 }).toBuffer();
+        } catch {
           throw err;
         }
-
-        const res = decodeJpegLossless(fragBuf);
-        const numPixels = res.rows * res.cols;
-        const { min, max } = computePixelRange(res.output, numPixels, rescaleSlope, rescaleIntercept);
-        const { wc, ww } = computeWindowValues(dataSet, min, max);
-        const grayBuffer = applyWindowing(res.output, numPixels, rescaleSlope, rescaleIntercept, wc, ww, isMono1);
-
-        return await sharp(grayBuffer, {
-          raw: { width: res.cols, height: res.rows, channels: 1 }
-        }).jpeg({ quality: 90 }).toBuffer();
       }
     }
   }

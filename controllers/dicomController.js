@@ -144,15 +144,20 @@ const viewDicom = async (req, res) => {
   try {
     const { studyId } = req.params;
     
-    // Validar existencia de estudio
-    const study = await dicomService.getStudyById(studyId);
+    // Validar existencia de estudio e incluir series
+    const study = await dicomService.getStudyWithPatient(studyId);
     if (!study) {
       return res.status(404).send('Estudio no encontrado.');
     }
 
-    // Aquí pasamos el studyId a la vista. El visor en frontend usará cornerstone.js 
-    // conectándose a la ruta de descarga para obtener la matriz del visualizador.
-    res.render('viewer', { studyId: study.id, title: 'Visualizador DICOM' });
+    // Obtener las series del estudio para pasarlas al visor
+    const series = await dicomService.getSeriesByStudyId(studyId);
+
+    res.render('viewer', {
+      studyId: study.id,
+      title: 'Visualizador DICOM',
+      series: series.map(s => s.get({ plain: true }))
+    });
   } catch (error) {
     console.error('Error en viewDicom:', error);
     res.status(500).send('Error interno.');
@@ -280,10 +285,120 @@ const downloadStudyJpg = async (req, res) => {
   }
 };
 
+/**
+ * Devuelve las series de un estudio como JSON.
+ */
+const listStudySeries = async (req, res) => {
+  try {
+    const { studyId } = req.params;
+    const study = await dicomService.getStudyById(studyId);
+
+    if (!study) {
+      return res.status(404).json({ error: 'Estudio no encontrado.' });
+    }
+
+    const series = await dicomService.getSeriesByStudyId(studyId);
+
+    res.json({
+      series: series.map(s => ({
+        id: s.id,
+        seriesNumber: s.seriesNumber,
+        modality: s.modality,
+        bodyPart: s.bodyPart,
+        procedureName: s.procedureName,
+        description: s.description,
+        contrast: s.contrast,
+        machine: s.machine,
+        seriesInstances: s.seriesInstances,
+        seriesDateTime: s.seriesDateTime,
+        repetitionTime: s.repetitionTime,
+        echoTime: s.echoTime,
+        viewPosition: s.viewPosition
+      }))
+    });
+  } catch (error) {
+    console.error('Error en listStudySeries:', error);
+    res.status(500).json({ error: 'Error interno.' });
+  }
+};
+
+/**
+ * Lista los archivos DICOM de una serie específica usando su Series_Directory.
+ */
+const listSeriesFiles = async (req, res) => {
+  try {
+    const { studyId, seriesId } = req.params;
+
+    const series = await dicomService.getSeriesById(seriesId);
+    if (!series || String(series.studyId) !== String(studyId)) {
+      return res.status(404).json({ error: 'Serie no encontrada para este estudio.' });
+    }
+
+    const dirPath = path.resolve(series.directoryPath);
+
+    if (!existsSync(dirPath)) {
+      return res.status(404).json({ error: 'El directorio físico de la serie no está disponible.' });
+    }
+
+    const dicomFiles = await getDicomFilesRecursive(dirPath, dirPath);
+    dicomFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    res.json({
+      files: dicomFiles,
+      seriesInfo: {
+        id: series.id,
+        bodyPart: series.bodyPart,
+        modality: series.modality,
+        description: series.description,
+        procedureName: series.procedureName
+      }
+    });
+  } catch (error) {
+    console.error('Error en listSeriesFiles:', error);
+    res.status(500).json({ error: 'Error interno.' });
+  }
+};
+
+/**
+ * Sirve un archivo DICOM individual de una serie específica.
+ */
+const serveSeriesDicom = async (req, res) => {
+  try {
+    const { studyId, seriesId, filename } = req.params;
+
+    const series = await dicomService.getSeriesById(seriesId);
+    if (!series || String(series.studyId) !== String(studyId)) {
+      return res.status(404).send('Serie no encontrada para este estudio.');
+    }
+
+    const dicomFilePath = path.resolve(series.directoryPath, filename);
+
+    if (!existsSync(dicomFilePath)) {
+      console.error(`Archivo físico no encontrado: ${dicomFilePath}`);
+      return res.status(404).send('El archivo físico del DICOM no está disponible.');
+    }
+
+    res.download(dicomFilePath, path.basename(filename), (err) => {
+      if (err) {
+        console.error('Error enviando el archivo:', err);
+        if (!res.headersSent) {
+          res.status(500).send('Error durante la descarga.');
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error en serveSeriesDicom:', error);
+    res.status(500).send('Error interno del servidor.');
+  }
+};
+
 export {
   serveDicom,
   viewDicom,
   listDicomFiles,
   downloadStudy,
-  downloadStudyJpg
+  downloadStudyJpg,
+  listStudySeries,
+  listSeriesFiles,
+  serveSeriesDicom
 };

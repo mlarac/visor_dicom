@@ -36,6 +36,8 @@
               <th>Paciente</th>
               <th>Fecha</th>
               <th>Tipo de Estudio</th>
+              <th>Parte del Cuerpo</th>
+              <th>Series</th>
               <th class="text-end">Acciones</th>
             </tr>
           </thead>
@@ -53,6 +55,26 @@
                 <td><span class="badge bg-info text-dark">
                     <%= study.studyType %>
                   </span></td>
+                <td>
+                  <% if (study.Series && study.Series.length > 0) { %>
+                    <% const bodyParts = [...new Set(study.Series.map(s => s.bodyPart).filter(Boolean))]; %>
+                    <% bodyParts.forEach(bp => { %>
+                      <span class="badge bg-warning text-dark me-1"><i class="bi bi-activity me-1"></i><%= bp %></span>
+                    <% }) %>
+                    <% if (bodyParts.length === 0) { %>
+                      <span class="text-secondary small">-</span>
+                    <% } %>
+                  <% } else { %>
+                    <span class="text-secondary small">-</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (study.Series && study.Series.length > 0) { %>
+                    <span class="badge bg-secondary"><%= study.Series.length %></span>
+                  <% } else { %>
+                    <span class="text-secondary small">0</span>
+                  <% } %>
+                </td>
                 <td class="text-end">
                   <div class="btn-group me-1">
                     <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill" data-bs-toggle="dropdown" aria-expanded="false" title="Descargar Estudio">
@@ -123,6 +145,8 @@
                                 <th>ID Estudio</th>
                                 <th>Fecha</th>
                                 <th>Tipo de Estudio</th>
+                                <th>Parte del Cuerpo</th>
+                                <th>Series</th>
                                 <th class="text-end">Acciones</th>
                               </tr>
                             </thead>
@@ -136,6 +160,26 @@
                                   <td><span class="badge bg-info text-dark">
                                       <%= study.studyType %>
                                     </span></td>
+                                  <td>
+                                    <% if (study.Series && study.Series.length > 0) { %>
+                                      <% const bodyParts2 = [...new Set(study.Series.map(s => s.bodyPart).filter(Boolean))]; %>
+                                      <% bodyParts2.forEach(bp => { %>
+                                        <span class="badge bg-warning text-dark me-1"><i class="bi bi-activity me-1"></i><%= bp %></span>
+                                      <% }) %>
+                                      <% if (bodyParts2.length === 0) { %>
+                                        <span class="text-secondary small">-</span>
+                                      <% } %>
+                                    <% } else { %>
+                                      <span class="text-secondary small">-</span>
+                                    <% } %>
+                                  </td>
+                                  <td>
+                                    <% if (study.Series && study.Series.length > 0) { %>
+                                      <span class="badge bg-secondary"><%= study.Series.length %></span>
+                                    <% } else { %>
+                                      <span class="text-secondary small">0</span>
+                                    <% } %>
+                                  </td>
                                   <td class="text-end">
                                     <div class="btn-group me-1">
                                       <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill" data-bs-toggle="dropdown" aria-expanded="false" title="Descargar Estudio">
