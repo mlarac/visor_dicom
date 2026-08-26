@@ -32,13 +32,14 @@ app.use(
         imgSrc: ["'self'", "data:", "blob:"],
         connectSrc: ["'self'", "blob:"],
         workerSrc: ["'self'", "blob:"],
-        fontSrc: ["'self'"],
+        fontSrc: ["'self'", "data:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
       }
     },
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-    crossOriginOpenerPolicy: { policy: 'same-origin' }
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+    crossOriginEmbedderPolicy: false
   })
 );
 
@@ -92,8 +93,9 @@ app.use('/', routes);
 try {
   await sequelize.sync();
   console.log('Base de datos conectada y sincronizada (Modelos y Sesiones).');
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor Visor DICOM corriendo en http://localhost:${PORT}`);
+    console.log(`Acceso en red local: http://0.0.0.0:${PORT}`);
   });
 } catch (err) {
   console.error('Error al iniciar la DB:', err);
