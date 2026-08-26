@@ -21,25 +21,33 @@ app.disable('x-powered-by');
 const PORT = process.env.PORT || 3000;
 
 // Cabeceras de seguridad HTTP con Helmet
+const isHttps = process.env.COOKIE_SECURE === 'true';
+
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+  scriptSrcElem: ["'self'", "'unsafe-inline'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", "data:", "blob:"],
+  connectSrc: ["'self'", "blob:"],
+  workerSrc: ["'self'", "blob:"],
+  fontSrc: ["'self'", "data:"],
+  objectSrc: ["'none'"]
+};
+
+// En HTTP, eliminar upgrade-insecure-requests del CSP (Helmet v8 lo incluye por defecto)
+if (!isHttps) {
+  cspDirectives.upgradeInsecureRequests = null;
+}
+
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
-        scriptSrcElem: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "blob:"],
-        workerSrc: ["'self'", "blob:"],
-        fontSrc: ["'self'", "data:"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
-      }
-    },
-    crossOriginResourcePolicy: { policy: 'same-origin' },
+    contentSecurityPolicy: { directives: cspDirectives },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginOpenerPolicy: { policy: 'unsafe-none' },
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    // HSTS solo tiene sentido con HTTPS; en HTTP bloquea la carga de recursos
+    strictTransportSecurity: isHttps
   })
 );
 
